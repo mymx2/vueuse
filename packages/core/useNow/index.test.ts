@@ -1,12 +1,36 @@
-import { promiseTimeout } from '@vueuse/shared'
-import { describe, expect, it } from 'vitest'
-import { useNow } from '.'
+import { mount } from '@vue/test-utils'
+import { describe, expect, it, vi } from 'vitest'
+import { UseNow } from './component'
+import { useNow } from './index'
 
 describe('useNow', () => {
+  vi.useFakeTimers()
+
   it('should get now timestamp by default', async () => {
     const now = useNow()
 
     expect(+now.value).toBeLessThanOrEqual(+new Date())
+  })
+
+  it('starts lazily if immediate is false', () => {
+    const initial = +new Date()
+    const { now, resume } = useNow({ controls: true, immediate: false })
+
+    expect(+now.value).toBe(initial)
+    vi.advanceTimersByTime(50)
+    expect(+now.value).toBe(initial)
+
+    resume()
+    vi.advanceTimersByTime(50)
+    expect(+now.value).toBeGreaterThan(initial)
+  })
+
+  it('should work with component', () => {
+    const wrapper = mount({
+      components: { UseNow },
+      template: '<UseNow v-slot="{ now }">{{ +now }}</UseNow>',
+    })
+    expect(Number.parseInt(wrapper.text(), 10)).toBeLessThanOrEqual(+new Date())
   })
 
   function testControl(interval: any) {
@@ -16,19 +40,19 @@ describe('useNow', () => {
 
       expect(+now.value).toBeGreaterThanOrEqual(initial)
 
-      await promiseTimeout(50)
+      vi.advanceTimersByTime(50)
 
       expect(+now.value).toBeGreaterThan(initial)
 
       initial = +now.value
 
       pause()
-      await promiseTimeout(50)
+      vi.advanceTimersByTime(50)
 
       expect(+now.value).toBe(initial)
 
       resume()
-      await promiseTimeout(50)
+      vi.advanceTimersByTime(50)
 
       expect(+now.value).toBeGreaterThan(initial)
     })

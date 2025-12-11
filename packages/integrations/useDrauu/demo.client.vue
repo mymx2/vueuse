@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { toRefs } from '@vueuse/shared'
+import { toRefs } from '@vueuse/core'
+import { useDrauu } from '@vueuse/integrations/useDrauu'
+import { ref as deepRef } from 'vue'
 import Scrubber from '../../core/useMediaControls/components/Scrubber.vue'
-import { useDrauu } from '.'
 
-const colors = ref(['black', '#ef4444', '#22c55e', '#3b82f6'])
-const target = ref()
+const colors = deepRef(['black', '#ef4444', '#22c55e', '#3b82f6'])
+const target = deepRef()
 const { undo, redo, canUndo, canRedo, clear, brush } = useDrauu(target, {
   brush: {
     color: 'black',
@@ -126,10 +126,6 @@ const { mode, color, size } = toRefs(brush)
 
 .drauu-demo .color-button {
   @apply m-0 bg-transparent text-dark-50 rounded-full border-none h-8 w-8 p-0 flex place-items-center place-content-center;
-}
-
-.dark .drauu-demo .color-button {
-  @apply ;
 }
 
 .drauu-demo .color-button:hover,

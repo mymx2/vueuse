@@ -1,6 +1,6 @@
-import { computed } from 'vue-demi'
-import { useMediaQuery } from '../useMediaQuery'
 import type { ConfigurableWindow } from '../_configurable'
+import { computed } from 'vue'
+import { useMediaQuery } from '../useMediaQuery'
 
 export type ContrastType = 'more' | 'less' | 'custom' | 'no-preference'
 
@@ -9,6 +9,8 @@ export type ContrastType = 'more' | 'less' | 'custom' | 'no-preference'
  *
  * @see https://vueuse.org/usePreferredContrast
  * @param [options]
+ *
+ * @__NO_SIDE_EFFECTS__
  */
 export function usePreferredContrast(options?: ConfigurableWindow) {
   const isMore = useMediaQuery('(prefers-contrast: more)', options)

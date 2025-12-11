@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { useConfirmDialog } from '@vueuse/core'
+import { shallowRef } from 'vue'
 
-const message = ref('')
-const revaled1 = ref(false)
-const revaled2 = ref(false)
+const message = shallowRef('')
+const revealed1 = shallowRef(false)
+const revealed2 = shallowRef(false)
 
-const dialog1 = useConfirmDialog(revaled1)
-const dialog2 = useConfirmDialog(revaled2)
+const dialog1 = useConfirmDialog(revealed1)
+const dialog2 = useConfirmDialog(revealed2)
 
 dialog1.onReveal(() => {
   message.value = 'Modal is shown!'
@@ -42,14 +42,14 @@ dialog2.onCancel(() => {
     <span class="text-orange-400">{{ message }}</span>
   </h2>
   <button
-    :disabled="revaled1 || revaled2"
+    :disabled="revealed1 || revealed2"
     @click="dialog1.reveal"
   >
     Click to Show Modal Dialog
   </button>
 
   <!-- First Dialog -->
-  <div v-if="revaled1">
+  <div v-if="revealed1">
     <div>
       <div>
         <p>Show Second Dialog?</p>
@@ -66,7 +66,7 @@ dialog2.onCancel(() => {
   </div>
 
   <!-- Second Dialog -->
-  <div v-if="revaled2">
+  <div v-if="revealed2">
     <div>
       <div>
         <p>Confirm or Reject</p>
@@ -96,7 +96,7 @@ dialog2.onCancel(() => {
   max-width: 100%;
   z-index: 10;
 }
-.modal-layout{
+.modal-layout {
   z-index: 20;
   left: 0;
   top: 0;

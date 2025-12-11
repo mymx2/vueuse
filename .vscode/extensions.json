@@ -2,6 +2,8 @@
   "recommendations": [
     "dbaeumer.vscode-eslint",
     "bierner.lit-html",
-    "antfu.vite"
+    "antfu.vite",
+    "vitest.explorer",
+    "antfu.pnpm-catalog-lens"
   ]
 }

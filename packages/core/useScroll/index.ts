@@ -1,9 +1,11 @@
-import { computed, reactive, ref } from 'vue-demi'
-import type { MaybeRefOrGetter } from '@vueuse/shared'
-import { noop, toValue, tryOnMounted, useDebounceFn, useThrottleFn } from '@vueuse/shared'
-import { useEventListener } from '../useEventListener'
+import type { MaybeRefOrGetter } from 'vue'
 import type { ConfigurableWindow } from '../_configurable'
+import { noop, tryOnMounted, useDebounceFn, useThrottleFn } from '@vueuse/shared'
+import { computed, reactive, shallowRef, toValue } from 'vue'
 import { defaultWindow } from '../_configurable'
+import { unrefElement } from '../unrefElement'
+import { useEventListener } from '../useEventListener'
+import { useMutationObserver } from '../useMutationObserver'
 
 export interface UseScrollOptions extends ConfigurableWindow {
   /**
@@ -33,6 +35,15 @@ export interface UseScrollOptions extends ConfigurableWindow {
   }
 
   /**
+   * Use MutationObserver to monitor specific DOM changes,
+   * such as attribute modifications, child node additions or removals, or subtree changes.
+   * @default { mutation: boolean }
+   */
+  observe?: boolean | {
+    mutation?: boolean
+  }
+
+  /**
    * Trigger it when scrolling.
    *
    */
@@ -58,6 +69,13 @@ export interface UseScrollOptions extends ConfigurableWindow {
    * @default 'auto'
    */
   behavior?: MaybeRefOrGetter<ScrollBehavior>
+
+  /**
+   * On error callback
+   *
+   * Default log error to `console.error`
+   */
+  onError?: (error: unknown) => void
 }
 
 /**
@@ -75,7 +93,6 @@ const ARRIVED_STATE_THRESHOLD_PIXELS = 1
  * @param element
  * @param options
  */
-
 export function useScroll(
   element: MaybeRefOrGetter<HTMLElement | SVGElement | Window | Document | null | undefined>,
   options: UseScrollOptions = {},
@@ -91,16 +108,26 @@ export function useScroll(
       top: 0,
       bottom: 0,
     },
+    observe: _observe = {
+      mutation: false,
+    },
     eventListenerOptions = {
       capture: false,
       passive: true,
     },
     behavior = 'auto',
     window = defaultWindow,
+    onError = (e) => { console.error(e) },
   } = options
 
-  const internalX = ref(0)
-  const internalY = ref(0)
+  const observe = typeof _observe === 'boolean'
+    ? {
+        mutation: _observe,
+      }
+    : _observe
+
+  const internalX = shallowRef(0)
+  const internalY = shallowRef(0)
 
   // Use a computed for x and y because we want to write the value to the refs
   // during a `scrollTo()` without firing additional `scrollTo()`s in the process.
@@ -135,9 +162,17 @@ export function useScroll(
       left: toValue(_x) ?? x.value,
       behavior: toValue(behavior),
     })
+    const scrollContainer
+      = (_element as Window)?.document?.documentElement
+        || (_element as Document)?.documentElement
+        || (_element as Element)
+    if (x != null)
+      internalX.value = scrollContainer.scrollLeft
+    if (y != null)
+      internalY.value = scrollContainer.scrollTop
   }
 
-  const isScrolling = ref(false)
+  const isScrolling = shallowRef(false)
   const arrivedState = reactive({
     left: true,
     right: false,
@@ -169,20 +204,21 @@ export function useScroll(
     if (!window)
       return
 
-    const el = (
-      (target as Window).document
-        ? (target as Window).document.documentElement
-        : (target as Document).documentElement ?? target
-    ) as HTMLElement
+    const el: Element = (
+      (target as Window)?.document?.documentElement
+      || (target as Document)?.documentElement
+      || unrefElement(target as HTMLElement | SVGElement)
+    ) as Element
 
-    const { display, flexDirection } = getComputedStyle(el)
+    const { display, flexDirection, direction } = window.getComputedStyle(el)
+    const directionMultipler = direction === 'rtl' ? -1 : 1
 
     const scrollLeft = el.scrollLeft
     directions.left = scrollLeft < internalX.value
     directions.right = scrollLeft > internalX.value
 
-    const left = Math.abs(scrollLeft) <= 0 + (offset.left || 0)
-    const right = Math.abs(scrollLeft)
+    const left = Math.abs(scrollLeft * directionMultipler) <= (offset.left || 0)
+    const right = Math.abs(scrollLeft * directionMultipler)
       + el.clientWidth >= el.scrollWidth
       - (offset.right || 0)
       - ARRIVED_STATE_THRESHOLD_PIXELS
@@ -206,7 +242,7 @@ export function useScroll(
 
     directions.top = scrollTop < internalY.value
     directions.bottom = scrollTop > internalY.value
-    const top = Math.abs(scrollTop) <= 0 + (offset.top || 0)
+    const top = Math.abs(scrollTop) <= (offset.top || 0)
     const bottom = Math.abs(scrollTop)
       + el.clientHeight >= el.scrollHeight
       - (offset.bottom || 0)
@@ -251,12 +287,33 @@ export function useScroll(
   )
 
   tryOnMounted(() => {
-    const _element = toValue(element)
-    if (!_element)
-      return
-
-    setArrivedState(_element)
+    try {
+      const _element = toValue(element)
+      if (!_element)
+        return
+      setArrivedState(_element)
+    }
+    catch (e) {
+      onError(e)
+    }
   })
+
+  if (observe?.mutation && element != null && element !== window && element !== document) {
+    useMutationObserver(
+      element as MaybeRefOrGetter<HTMLElement | SVGElement>,
+      () => {
+        const _element = toValue(element)
+        if (!_element)
+          return
+        setArrivedState(_element)
+      },
+      {
+        attributes: true,
+        childList: true,
+        subtree: true,
+      },
+    )
+  }
 
   useEventListener(
     element,

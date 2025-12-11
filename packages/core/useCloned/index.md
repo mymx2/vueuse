@@ -17,7 +17,7 @@ const { cloned } = useCloned(original)
 
 original.value.key = 'some new value'
 
-console.log(cloned.value.key) // 'some new value'
+console.log(cloned.value.key) // 'value'
 ```
 
 ## Manual cloning
@@ -48,5 +48,5 @@ import { klona } from 'klona'
 
 const original = ref({ key: 'value' })
 
-const { cloned, sync } = useCloned(original, { clone: klona })
+const { cloned, isModified, sync } = useCloned(original, { clone: klona })
 ```

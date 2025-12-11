@@ -14,31 +14,33 @@ Reactive [Clipboard API](https://developer.mozilla.org/en-US/docs/Web/API/Clipbo
 
 ## Usage
 
-```js
+```vue
+<script setup lang="ts">
 import { useClipboardItems } from '@vueuse/core'
 
-const mime = 'text/html'
+const mime = 'text/plain'
 const source = ref([
   new ClipboardItem({
-    [mime]: new Blob(['\'<b>HTML content</b>\'', { type: mime }]),
+    [mime]: new Blob(['plain text'], { type: mime }),
   })
 ])
 
 const { content, copy, copied, isSupported } = useClipboardItems({ source })
-```
+</script>
 
-```html
-<div v-if="isSupported">
-  <button @click='copy(source)'>
-    <!-- by default, `copied` will be reset in 1.5s -->
-    <span v-if='!copied'>Copy</span>
-    <span v-else>Copied!</span>
-  </button>
-  <p>
-    Current copied: <code>{{ text || 'none' }}</code>
+<template>
+  <div v-if="isSupported">
+    <button @click="copy(source)">
+      <!-- by default, `copied` will be reset in 1.5s -->
+      <span v-if="!copied">Copy</span>
+      <span v-else>Copied!</span>
+    </button>
+    <p>
+      Current copied: <code>{{ content || 'none' }}</code>
+    </p>
+  </div>
+  <p v-else>
+    Your browser does not support Clipboard API
   </p>
-</div>
-<p v-else>
-  Your browser does not support Clipboard API
-</p>
+</template>
 ```

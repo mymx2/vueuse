@@ -1,8 +1,7 @@
-import type { Ref, WatchCallback, WatchSource, WatchStopHandle } from 'vue-demi'
-import { nextTick, ref } from 'vue-demi'
-import { toValue } from '../toValue'
-import type { MapOldSources, MapSources, MaybeRefOrGetter } from '../utils'
+import type { MaybeRefOrGetter, MultiWatchSources, ShallowRef, WatchCallback, WatchSource, WatchStopHandle } from 'vue'
+import type { MapOldSources, MapSources } from '../utils'
 import type { WatchWithFilterOptions } from '../watchWithFilter'
+import { nextTick, shallowRef, toValue } from 'vue'
 import { watchWithFilter } from '../watchWithFilter'
 
 export interface WatchAtMostOptions<Immediate> extends WatchWithFilterOptions<Immediate> {
@@ -11,11 +10,13 @@ export interface WatchAtMostOptions<Immediate> extends WatchWithFilterOptions<Im
 
 export interface WatchAtMostReturn {
   stop: WatchStopHandle
-  count: Ref<number>
+  pause: () => void
+  resume: () => void
+  count: ShallowRef<number>
 }
 
 // overloads
-export function watchAtMost<T extends Readonly<WatchSource<unknown>[]>, Immediate extends Readonly<boolean> = false>(sources: [...T], cb: WatchCallback<MapSources<T>, MapOldSources<T, Immediate>>, options: WatchAtMostOptions<Immediate>): WatchAtMostReturn
+export function watchAtMost<T extends Readonly<MultiWatchSources>, Immediate extends Readonly<boolean> = false>(sources: [...T], cb: WatchCallback<MapSources<T>, MapOldSources<T, Immediate>>, options: WatchAtMostOptions<Immediate>): WatchAtMostReturn
 
 export function watchAtMost<T, Immediate extends Readonly<boolean> = false>(sources: WatchSource<T>, cb: WatchCallback<T, Immediate extends true ? T | undefined : T>, options: WatchAtMostOptions<Immediate>): WatchAtMostReturn
 
@@ -30,9 +31,9 @@ export function watchAtMost<Immediate extends Readonly<boolean> = false>(
     ...watchOptions
   } = options
 
-  const current = ref(0)
+  const current = shallowRef(0)
 
-  const stop = watchWithFilter(
+  const { stop, resume, pause } = watchWithFilter(
     source,
     (...args) => {
       current.value += 1
@@ -44,5 +45,5 @@ export function watchAtMost<Immediate extends Readonly<boolean> = false>(
     watchOptions,
   )
 
-  return { count: current, stop }
+  return { count: current, stop, resume, pause }
 }

@@ -8,7 +8,7 @@ Reactive [prefers-color-scheme](https://developer.mozilla.org/en-US/docs/Web/CSS
 
 ## Usage
 
-```js
+```ts
 import { usePreferredColorScheme } from '@vueuse/core'
 
 const preferredColor = usePreferredColorScheme()
@@ -16,8 +16,10 @@ const preferredColor = usePreferredColorScheme()
 
 ## Component Usage
 
-```html
-<UsePreferredColorScheme v-slot="{ colorScheme }">
-  Preferred Color Scheme: {{ colorScheme }}
-</UsePreferredColorScheme>
+```vue
+<template>
+  <UsePreferredColorScheme v-slot="{ colorScheme }">
+    Preferred Color Scheme: {{ colorScheme }}
+  </UsePreferredColorScheme>
+</template>
 ```

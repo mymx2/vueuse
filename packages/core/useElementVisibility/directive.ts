@@ -1,19 +1,17 @@
-import { watch } from 'vue-demi'
-import { directiveHooks } from '@vueuse/shared'
-import type { ObjectDirective } from 'vue-demi'
-
-import type { UseElementVisibilityOptions } from '.'
-import { useElementVisibility } from '.'
+import type { UseElementVisibilityOptions } from '@vueuse/core'
+import type { ObjectDirective } from 'vue'
+import { useElementVisibility } from '@vueuse/core'
+import { watch } from 'vue'
 
 type BindingValueFunction = (state: boolean) => void
 
 type BindingValueArray = [BindingValueFunction, UseElementVisibilityOptions]
 
 export const vElementVisibility: ObjectDirective<
-HTMLElement,
-BindingValueFunction | BindingValueArray
+  HTMLElement,
+  BindingValueFunction | BindingValueArray
 > = {
-  [directiveHooks.mounted](el, binding) {
+  mounted(el, binding) {
     if (typeof binding.value === 'function') {
       const handler = binding.value
       const isVisible = useElementVisibility(el)

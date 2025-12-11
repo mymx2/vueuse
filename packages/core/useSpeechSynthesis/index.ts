@@ -1,10 +1,9 @@
-import type { MaybeRef, MaybeRefOrGetter } from '@vueuse/shared'
-import { toRef, toValue, tryOnScopeDispose } from '@vueuse/shared'
-import type { Ref } from 'vue-demi'
-import { computed, ref, shallowRef, watch } from 'vue-demi'
-import { useSupported } from '../useSupported'
+import type { MaybeRef, MaybeRefOrGetter } from 'vue'
 import type { ConfigurableWindow } from '../_configurable'
+import { toRef, tryOnScopeDispose } from '@vueuse/shared'
+import { computed, shallowRef, toValue, watch } from 'vue'
 import { defaultWindow } from '../_configurable'
+import { useSupported } from '../useSupported'
 
 export type UseSpeechSynthesisStatus = 'init' | 'play' | 'pause' | 'end'
 
@@ -36,7 +35,11 @@ export interface UseSpeechSynthesisOptions extends ConfigurableWindow {
    *
    * @default 1
    */
-  volume?: SpeechSynthesisUtterance['volume']
+  volume?: MaybeRefOrGetter<SpeechSynthesisUtterance['volume']>
+  /**
+   * Callback function that is called when the boundary event is triggered.
+   */
+  onBoundary?: (event: SpeechSynthesisEvent) => void
 }
 
 /**
@@ -54,17 +57,18 @@ export function useSpeechSynthesis(
     rate = 1,
     volume = 1,
     window = defaultWindow,
+    onBoundary,
   } = options
 
   const synth = window && (window as any).speechSynthesis as SpeechSynthesis
   const isSupported = useSupported(() => synth)
 
-  const isPlaying = ref(false)
-  const status = ref<UseSpeechSynthesisStatus>('init')
+  const isPlaying = shallowRef(false)
+  const status = shallowRef<UseSpeechSynthesisStatus>('init')
 
   const spokenText = toRef(text || '')
   const lang = toRef(options.lang || 'en-US')
-  const error = shallowRef(undefined) as Ref<SpeechSynthesisErrorEvent | undefined>
+  const error = shallowRef<SpeechSynthesisErrorEvent | undefined>(undefined)
 
   const toggle = (value = !isPlaying.value) => {
     isPlaying.value = value
@@ -75,7 +79,7 @@ export function useSpeechSynthesis(
     utterance.voice = toValue(options.voice) || null
     utterance.pitch = toValue(pitch)
     utterance.rate = toValue(rate)
-    utterance.volume = volume
+    utterance.volume = toValue(volume)
 
     utterance.onstart = () => {
       isPlaying.value = true
@@ -100,6 +104,10 @@ export function useSpeechSynthesis(
     utterance.onerror = (event) => {
       error.value = event
     }
+
+    utterance.onboundary = (event) => {
+      onBoundary?.(event)
+    }
   }
 
   const utterance = computed(() => {
@@ -112,7 +120,8 @@ export function useSpeechSynthesis(
 
   const speak = () => {
     synth!.cancel()
-    utterance && synth!.speak(utterance.value)
+    if (utterance)
+      synth!.speak(utterance.value)
   }
 
   const stop = () => {

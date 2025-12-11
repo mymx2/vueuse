@@ -1,9 +1,10 @@
-import type { Fn, MaybeElementRef } from '@vueuse/core'
-import { tryOnScopeDispose, unrefElement } from '@vueuse/core'
-import type { Ref } from 'vue-demi'
-import { ref, watch } from 'vue-demi'
-import { createFocusTrap } from 'focus-trap'
+import type { Arrayable, Fn, MaybeComputedElementRef } from '@vueuse/core'
 import type { ActivateOptions, DeactivateOptions, FocusTrap, Options } from 'focus-trap'
+import type { MaybeRefOrGetter, ShallowRef } from 'vue'
+import { toArray, tryOnScopeDispose, unrefElement } from '@vueuse/core'
+import { notNullish } from '@vueuse/shared'
+import { createFocusTrap } from 'focus-trap'
+import { computed, shallowRef, toValue, watch } from 'vue'
 
 export interface UseFocusTrapOptions extends Options {
   /**
@@ -16,12 +17,12 @@ export interface UseFocusTrapReturn {
   /**
    * Indicates if the focus trap is currently active
    */
-  hasFocus: Ref<boolean>
+  hasFocus: ShallowRef<boolean>
 
   /**
    * Indicates if the focus trap is currently paused
    */
-  isPaused: Ref<boolean>
+  isPaused: ShallowRef<boolean>
 
   /**
    * Activate the focus trap
@@ -60,14 +61,14 @@ export interface UseFocusTrapReturn {
  * @see https://vueuse.org/useFocusTrap
  */
 export function useFocusTrap(
-  target: MaybeElementRef,
+  target: MaybeRefOrGetter<Arrayable<MaybeRefOrGetter<string> | MaybeComputedElementRef>>,
   options: UseFocusTrapOptions = {},
 ): UseFocusTrapReturn {
   let trap: undefined | FocusTrap
 
   const { immediate, ...focusTrapOptions } = options
-  const hasFocus = ref(false)
-  const isPaused = ref(false)
+  const hasFocus = shallowRef(false)
+  const isPaused = shallowRef(false)
 
   const activate = (opts?: ActivateOptions) => trap && trap.activate(opts)
   const deactivate = (opts?: DeactivateOptions) => trap && trap.deactivate(opts)
@@ -86,33 +87,57 @@ export function useFocusTrap(
     }
   }
 
-  watch(
-    () => unrefElement(target),
-    (el) => {
-      if (!el)
-        return
-
-      trap = createFocusTrap(el, {
-        ...focusTrapOptions,
-        onActivate() {
-          hasFocus.value = true
-
-          // Apply if user provided onActivate option
-          if (options.onActivate)
-            options.onActivate()
-        },
-        onDeactivate() {
-          hasFocus.value = false
-
-          // Apply if user provided onDeactivate option
-          if (options.onDeactivate)
-            options.onDeactivate()
-        },
+  const targets = computed(() => {
+    const _targets = toValue(target)
+    return toArray(_targets)
+      .map((el) => {
+        const _el = toValue(el)
+        return typeof _el === 'string' ? _el : unrefElement(_el)
       })
+      .filter(notNullish)
+  })
 
-      // Focus if immediate is set to true
-      if (immediate)
-        activate()
+  watch(
+    targets,
+    (els) => {
+      if (!els.length)
+        return
+      if (!trap) {
+        // create the trap
+        trap = createFocusTrap(els, {
+          ...focusTrapOptions,
+          onActivate() {
+            hasFocus.value = true
+
+            // Apply if user provided onActivate option
+            if (options.onActivate)
+              options.onActivate()
+          },
+          onDeactivate() {
+            hasFocus.value = false
+
+            // Apply if user provided onDeactivate option
+            if (options.onDeactivate)
+              options.onDeactivate()
+          },
+        })
+
+        // Focus if immediate is set to true
+        if (immediate)
+          activate()
+      }
+      else {
+        // get the active state of the trap
+        const isActive = trap?.active
+
+        // update the container elements
+        trap?.updateContainerElements(els)
+
+        // if the trap is not active and immediate is set to true, activate the trap
+        if (!isActive && immediate) {
+          activate()
+        }
+      }
     },
     { flush: 'post' },
   )

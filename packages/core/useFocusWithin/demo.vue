@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { useFocusWithin } from '@vueuse/core'
+import { useTemplateRef } from 'vue'
 
-const target = ref()
+const target = useTemplateRef('target')
 
 const { focused } = useFocusWithin(target)
 </script>

@@ -14,10 +14,12 @@ of [`watch`](https://vuejs.org/guide/essentials/watchers.html#basic-example).
 
 ## Usage
 
-```ts
-import { computed } from 'vue'
+<!-- TODO: import rxjs error if enable twoslash -->
+
+```ts no-twoslash
 import { useExtractedObservable } from '@vueuse/rxjs'
 import ObservableSocket from 'observable-socket'
+import { computed } from 'vue'
 import { makeSocket, useUser } from '../some/lib/func'
 
 // setup()
@@ -29,14 +31,14 @@ If you want to add custom error handling to an `Observable` that might error, yo
 configuration. Without this, RxJS will treat any error in the supplied `Observable` as an "unhandled error" and it will
 be thrown in a new call stack and reported to `window.onerror` (or `process.on('error')` if you happen to be in Node).
 
-```ts
-import { ref } from 'vue'
+```ts no-twoslash
 import { useExtractedObservable } from '@vueuse/rxjs'
 import { interval } from 'rxjs'
 import { mapTo, scan, startWith, tap } from 'rxjs/operators'
+import { shallowRef } from 'vue'
 
 // setup()
-const start = ref(0)
+const start = shallowRef(0)
 
 const count = useExtractedObservable(
   start,
@@ -62,14 +64,14 @@ const count = useExtractedObservable(
 You can also supply an optional `onComplete` configuration if you need to attach special behavior when the watched
 observable completes.
 
-```ts
-import { ref } from 'vue'
+```ts no-twoslash
 import { useExtractedObservable } from '@vueuse/rxjs'
 import { interval } from 'rxjs'
 import { mapTo, scan, startWith, takeWhile } from 'rxjs/operators'
+import { shallowRef } from 'vue'
 
 // setup()
-const start = ref(0)
+const start = shallowRef(0)
 
 const count = useExtractedObservable(
   start,
@@ -91,14 +93,14 @@ const count = useExtractedObservable(
 
 If you want, you can also pass `watch` options as the last argument:
 
-```ts
-import { ref } from 'vue'
+```ts no-twoslash
 import { useExtractedObservable } from '@vueuse/rxjs'
 import { interval } from 'rxjs'
 import { mapTo, scan, startWith, takeWhile } from 'rxjs/operators'
+import { shallowRef } from 'vue'
 
 // setup()
-const start = ref<number>()
+const start = shallowRef<number>()
 
 const count = useExtractedObservable(
   start,

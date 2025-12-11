@@ -1,13 +1,14 @@
+import type { PackageIndexes, VueUseFunction } from '@vueuse/metadata'
+import { existsSync } from 'node:fs'
+import * as fs from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import fs from 'fs-extra'
 import matter from 'gray-matter'
-import YAML from 'js-yaml'
-import Git from 'simple-git'
-import type { PackageIndexes, VueUseFunction } from '@vueuse/metadata'
 import { $fetch } from 'ofetch'
-import { getCategories } from '../packages/metadata/utils'
+import Git from 'simple-git'
+import yaml from 'yaml'
 import { packages } from '../meta/packages'
+import { getCategories } from '../packages/metadata/utils'
 
 export const git = Git()
 
@@ -20,9 +21,9 @@ export const DIR_SRC = resolve(__dirname, '../packages')
 const DIR_TYPES = resolve(__dirname, '../types/packages')
 
 export async function getTypeDefinition(pkg: string, name: string): Promise<string | undefined> {
-  const typingFilepath = join(DIR_TYPES, `${pkg}/${name}/index.d.mts`)
+  const typingFilepath = join(DIR_TYPES, `${pkg}/${name}/index.d.ts`)
 
-  if (!fs.existsSync(typingFilepath))
+  if (!existsSync(typingFilepath))
     return
 
   let types = await fs.readFile(typingFilepath, 'utf-8')
@@ -34,7 +35,7 @@ export async function getTypeDefinition(pkg: string, name: string): Promise<stri
   types = types
     .replace(/import\(.*?\)\./g, '')
     .replace(/import[\s\S]+?from ?["'][\s\S]+?["']/g, '')
-    .replace(/export {}/g, '')
+    .replace(/export \{\}/g, '')
 
   const prettier = await import('prettier')
   return (await prettier
@@ -96,7 +97,7 @@ export async function updateImport({ packages, functions }: PackageIndexes) {
     await fs.writeFile(join(dir, 'index.ts'), `${imports.join('\n')}\n`)
 
     // temporary file for export-size
-    await fs.remove(join(dir, 'index.mjs'))
+    await fs.rm(join(dir, 'index.mjs'), { force: true })
   }
 }
 
@@ -125,7 +126,7 @@ export function stringifyFunctions(functions: VueUseFunction[], title = true) {
         continue
 
       const desc = description ? ` — ${description}` : ''
-      list += `  - [\`${name}\`](${docs})${desc}\n`
+      list += `- [\`${name}\`](${docs})${desc}\n`
     }
     list += '\n'
   }
@@ -137,7 +138,7 @@ export function replacer(code: string, value: string, key: string, insert: 'head
   const END = `<!--${key}_ENDS-->`
   const regex = new RegExp(`${START}[\\s\\S]*?${END}`, 'im')
 
-  const target = value ? `${START}\n${value}\n${END}` : `${START}${END}`
+  const target = value ? `${START}\n\n${value.trim()}\n\n${END}` : `${START}${END}`
 
   if (!code.match(regex)) {
     if (insert === 'none')
@@ -155,14 +156,14 @@ export async function updatePackageREADME({ packages, functions }: PackageIndexe
   for (const { name, dir } of Object.values(packages)) {
     const readmePath = join(dir, 'README.md')
 
-    if (!fs.existsSync(readmePath))
+    if (!existsSync(readmePath))
       continue
 
     const functionMD = stringifyFunctions(functions.filter(i => i.package === name), false)
     let readme = await fs.readFile(readmePath, 'utf-8')
-    readme = replacer(readme, functionMD, 'FUNCTIONS_LIST')
+    readme = replacer(readme, functionMD, 'FUNCTIONS_LIST').trim().replace(/\r\n/g, '\n')
 
-    await fs.writeFile(readmePath, `${readme.trim()}\n`, 'utf-8')
+    await fs.writeFile(readmePath, `${readme}\n`, 'utf-8')
   }
 }
 
@@ -171,9 +172,12 @@ export async function updateIndexREADME({ packages, functions }: PackageIndexes)
 
   const functionsCount = functions.filter(i => !i.internal).length
 
-  readme = readme.replace(/img\.shields\.io\/badge\/-(.+?)%20functions/, `img.shields.io/badge/-${functionsCount}%20functions`)
+  readme = readme.replace(
+    /img\.shields\.io\/badge\/-(.+?)%20functions/,
+    `img.shields.io/badge/-${functionsCount}%20functions`,
+  ).trim().replace(/\r\n/g, '\n')
 
-  await fs.writeFile('README.md', `${readme.trim()}\n`, 'utf-8')
+  await fs.writeFile('README.md', `${readme}\n`, 'utf-8')
 }
 
 export async function updateFunctionsMD({ packages, functions }: PackageIndexes) {
@@ -182,36 +186,39 @@ export async function updateFunctionsMD({ packages, functions }: PackageIndexes)
   const addons = Object.values(packages)
     .filter(i => i.addon && !i.deprecated)
     .map(({ docs, name, display, description }) => {
-      return `## ${display} - [\`@vueuse/${name}\`](${docs})\n${description}\n${
-        stringifyFunctions(functions.filter(i => i.package === name), false)}`
+      return `## ${display} - [\`@vueuse/${name}\`](${docs})\n\n${description?.trim()}\n\n${
+        stringifyFunctions(functions.filter(i => i.package === name), false)}`.trim()
     })
-    .join('\n')
+    .join('\n\n')
 
-  mdAddons = replacer(mdAddons, addons, 'ADDONS_LIST')
+  mdAddons = replacer(mdAddons, addons, 'ADDONS_LIST').replace(/\r\n/g, '\n')
 
   await fs.writeFile('packages/add-ons.md', mdAddons, 'utf-8')
 }
 
 export async function updateFunctionREADME(indexes: PackageIndexes) {
-  const hasTypes = fs.existsSync(DIR_TYPES)
+  const hasTypes = existsSync(DIR_TYPES)
 
   if (!hasTypes)
     console.warn('No types dist found, run `npm run build:types` first.')
 
   for (const fn of indexes.functions) {
     const mdPath = `packages/${fn.package}/${fn.name}/index.md`
-    if (!fs.existsSync(mdPath))
+    if (!existsSync(mdPath))
       continue
 
     let readme = await fs.readFile(mdPath, 'utf-8')
 
     const { content, data = {} } = matter(readme)
+    const yamlData = yaml.stringify(data, {
+      singleQuote: true,
+    })
 
     data.category = fn.category || 'Unknown'
 
-    readme = `---\n${YAML.dump(data)}---\n\n${content.trim()}`
+    readme = `---\n${yamlData}---\n\n${content.trim()}`.trim().replace(/\r\n/g, '\n')
 
-    await fs.writeFile(mdPath, `${readme.trim()}\n`, 'utf-8')
+    await fs.writeFile(mdPath, `${readme}\n`, 'utf-8')
   }
 }
 
@@ -223,12 +230,12 @@ export async function updateCountBadge(indexes: PackageIndexes) {
 }
 
 export async function updatePackageJSON(indexes: PackageIndexes) {
-  const { version } = await fs.readJSON('package.json')
+  const { version } = JSON.parse(await fs.readFile('package.json', { encoding: 'utf8' }))
 
   for (const { name, description, author, submodules, iife } of packages) {
     const packageDir = join(DIR_SRC, name)
     const packageJSONPath = join(packageDir, 'package.json')
-    const packageJSON = await fs.readJSON(packageJSONPath)
+    const packageJSON = JSON.parse(await fs.readFile(packageJSONPath, { encoding: 'utf8' }))
 
     packageJSON.version = version
     packageJSON.description = description || packageJSON.description
@@ -236,6 +243,7 @@ export async function updatePackageJSON(indexes: PackageIndexes) {
     packageJSON.bugs = {
       url: 'https://github.com/vueuse/vueuse/issues',
     }
+    packageJSON.type = 'module'
     packageJSON.homepage = name === 'core'
       ? 'https://github.com/vueuse/vueuse#readme'
       : `https://github.com/vueuse/vueuse/tree/main/packages/${name}#readme`
@@ -244,45 +252,41 @@ export async function updatePackageJSON(indexes: PackageIndexes) {
       url: 'git+https://github.com/vueuse/vueuse.git',
       directory: `packages/${name}`,
     }
-    packageJSON.main = './index.cjs'
-    packageJSON.types = './index.d.cts'
-    packageJSON.module = './index.mjs'
+    packageJSON.main = './dist/index.js'
+    packageJSON.types = './dist/index.d.ts'
+    packageJSON.module = './dist/index.js'
     if (iife !== false) {
-      packageJSON.unpkg = './index.iife.min.js'
-      packageJSON.jsdelivr = './index.iife.min.js'
+      packageJSON.unpkg = './dist/index.iife.min.js'
+      packageJSON.jsdelivr = './dist/index.iife.min.js'
     }
+    packageJSON.files = [
+      'dist',
+    ]
+
     packageJSON.exports = {
-      '.': {
-        import: './index.mjs',
-        require: './index.cjs',
-      },
-      './*': './*',
+      '.': './dist/index.js',
       ...packageJSON.exports,
+      './*': './dist/*',
     }
 
     if (submodules) {
       indexes.functions
         .filter(i => i.package === name)
         .forEach((i) => {
-          packageJSON.exports[`./${i.name}`] = {
-            import: `./${i.name}.mjs`,
-            require: `./${i.name}.cjs`,
-          }
+          packageJSON.exports[`./${i.name}`] = `./dist/${i.name}.js`
           if (i.component) {
-            packageJSON.exports[`./${i.name}/component`] = {
-              import: `./${i.name}/component.mjs`,
-              require: `./${i.name}/component.cjs`,
-            }
+            packageJSON.exports[`./${i.name}/component`] = `./dist/${i.name}/component.js`
           }
         })
     }
 
-    await fs.writeJSON(packageJSONPath, packageJSON, { spaces: 2 })
+    await fs.writeFile(packageJSONPath, `${JSON.stringify(packageJSON, null, 2)}\n`)
   }
 }
 
 async function fetchContributors(page = 1) {
-  const additional = ['egoist']
+  // contributors that contribute to repos other than `vueuse/vueuse`, required for contributor avatar to work
+  const additional = ['egoist', 'Tahul', 'BobbieGoede']
 
   const collaborators: string[] = []
   const data = await $fetch<{ login: string }[]>(`https://api.github.com/repos/vueuse/vueuse/contributors?per_page=100&page=${page}`, {

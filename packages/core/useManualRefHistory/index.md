@@ -9,11 +9,11 @@ Manually track the change history of a ref when the using calls `commit()`, also
 
 ## Usage
 
-```ts {5}
-import { ref } from 'vue'
+```ts {5} twoslash include usage
 import { useManualRefHistory } from '@vueuse/core'
+import { shallowRef } from 'vue'
 
-const counter = ref(0)
+const counter = shallowRef(0)
 const { history, commit, undo, redo } = useManualRefHistory(counter)
 
 counter.value += 1
@@ -29,6 +29,8 @@ console.log(history.value)
 You can use `undo` to reset the ref value to the last history point.
 
 ```ts
+// @include: usage
+// ---cut---
 console.log(counter.value) // 1
 undo()
 console.log(counter.value) // 0
@@ -39,8 +41,8 @@ console.log(counter.value) // 0
 If you are going to mutate the source, you need to pass a custom clone function or use `clone` `true` as a param, that is a shortcut for a minimal clone function `x => JSON.parse(JSON.stringify(x))` that will be used in both `dump` and `parse`.
 
 ```ts {5}
-import { ref } from 'vue'
 import { useManualRefHistory } from '@vueuse/core'
+import { ref } from 'vue'
 
 const counter = ref({ foo: 1, bar: 2 })
 const { history, commit, undo, redo } = useManualRefHistory(counter, { clone: true })
@@ -64,8 +66,8 @@ const refHistory = useManualRefHistory(target, { clone: structuredClone })
 Or by using [lodash's `cloneDeep`](https://lodash.com/docs/4.17.15#cloneDeep):
 
 ```ts
-import { cloneDeep } from 'lodash-es'
 import { useManualRefHistory } from '@vueuse/core'
+import { cloneDeep } from 'lodash-es'
 
 const refHistory = useManualRefHistory(target, { clone: cloneDeep })
 ```
@@ -73,8 +75,8 @@ const refHistory = useManualRefHistory(target, { clone: cloneDeep })
 Or a more lightweight [`klona`](https://github.com/lukeed/klona):
 
 ```ts
-import { klona } from 'klona'
 import { useManualRefHistory } from '@vueuse/core'
+import { klona } from 'klona'
 
 const refHistory = useManualRefHistory(target, { clone: klona })
 ```
@@ -97,6 +99,8 @@ const refHistory = useManualRefHistory(target, {
 We will keep all the history by default (unlimited) until you explicitly clear them up, you can set the maximal amount of history to be kept by `capacity` options.
 
 ```ts
+import { useManualRefHistory } from '@vueuse/core'
+
 const refHistory = useManualRefHistory(target, {
   capacity: 15, // limit to 15 history records
 })

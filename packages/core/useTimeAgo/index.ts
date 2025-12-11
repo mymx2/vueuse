@@ -1,7 +1,6 @@
-import type { MaybeRefOrGetter, Pausable } from '@vueuse/shared'
-import { toValue } from '@vueuse/shared'
-import type { ComputedRef } from 'vue-demi'
-import { computed } from 'vue-demi'
+import type { Pausable } from '@vueuse/shared'
+import type { ComputedRef, MaybeRefOrGetter } from 'vue'
+import { computed, toValue } from 'vue'
 import { useNow } from '../useNow'
 
 export type UseTimeAgoFormatter<T = number> = (value: T, isPast: boolean) => string
@@ -17,7 +16,7 @@ export interface UseTimeAgoMessagesBuiltIn {
 
 export type UseTimeAgoMessages<UnitNames extends string = UseTimeAgoUnitNamesDefault>
   = UseTimeAgoMessagesBuiltIn
-  & Record<UnitNames, string | UseTimeAgoFormatter<number>>
+    & Record<UnitNames, string | UseTimeAgoFormatter<number>>
 
 export interface FormatTimeAgoOptions<UnitNames extends string = UseTimeAgoUnitNamesDefault> {
   /**
@@ -54,7 +53,7 @@ export interface FormatTimeAgoOptions<UnitNames extends string = UseTimeAgoUnitN
   /**
    * Custom units
    */
-  units?: UseTimeAgoUnit<UseTimeAgoUnitNamesDefault>[]
+  units?: UseTimeAgoUnit<UnitNames>[]
 }
 
 export interface UseTimeAgoOptions<Controls extends boolean, UnitNames extends string = UseTimeAgoUnitNamesDefault> extends FormatTimeAgoOptions<UnitNames> {
@@ -129,9 +128,19 @@ export type UseTimeAgoReturn<Controls extends boolean = false> = Controls extend
  * Reactive time ago formatter.
  *
  * @see https://vueuse.org/useTimeAgo
+ *
+ * @__NO_SIDE_EFFECTS__
  */
 export function useTimeAgo<UnitNames extends string = UseTimeAgoUnitNamesDefault>(time: MaybeRefOrGetter<Date | number | string>, options?: UseTimeAgoOptions<false, UnitNames>): UseTimeAgoReturn<false>
 export function useTimeAgo<UnitNames extends string = UseTimeAgoUnitNamesDefault>(time: MaybeRefOrGetter<Date | number | string>, options: UseTimeAgoOptions<true, UnitNames>): UseTimeAgoReturn<true>
+
+/**
+ * Reactive time ago formatter.
+ *
+ * @see https://vueuse.org/useTimeAgo
+ *
+ * @__NO_SIDE_EFFECTS__
+ */
 export function useTimeAgo<UnitNames extends string = UseTimeAgoUnitNamesDefault>(time: MaybeRefOrGetter<Date | number | string>, options: UseTimeAgoOptions<boolean, UnitNames> = {}) {
   const {
     controls: exposeControls = false,
@@ -157,7 +166,7 @@ export function formatTimeAgo<UnitNames extends string = UseTimeAgoUnitNamesDefa
     max,
     messages = DEFAULT_MESSAGES as UseTimeAgoMessages<UnitNames>,
     fullDateFormatter = DEFAULT_FORMATTER,
-    units = DEFAULT_UNITS,
+    units = DEFAULT_UNITS as UseTimeAgoUnit<UnitNames>[],
     showSecond = false,
     rounding = 'round',
   } = options
@@ -169,11 +178,11 @@ export function formatTimeAgo<UnitNames extends string = UseTimeAgoUnitNamesDefa
   const diff = +now - +from
   const absDiff = Math.abs(diff)
 
-  function getValue(diff: number, unit: UseTimeAgoUnit) {
+  function getValue(diff: number, unit: UseTimeAgoUnit<UnitNames>) {
     return roundFn(Math.abs(diff) / unit.value)
   }
 
-  function format(diff: number, unit: UseTimeAgoUnit) {
+  function format(diff: number, unit: UseTimeAgoUnit<UnitNames>) {
     const val = getValue(diff, unit)
     const past = diff > 0
 

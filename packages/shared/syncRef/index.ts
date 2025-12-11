@@ -1,14 +1,14 @@
-import type { Ref } from 'vue-demi'
+import type { Ref } from 'vue'
 import type { ConfigurableFlushSync } from '../utils'
 import type { WatchPausableReturn } from '../watchPausable'
-import { pausableWatch } from '../watchPausable'
+import { watchPausable } from '../watchPausable'
 
 type Direction = 'ltr' | 'rtl' | 'both'
 type SpecificFieldPartial<T, K extends keyof T> = Partial<Pick<T, K>> & Omit<T, K>
 /**
  * A = B
  */
-type Equal<A, B> = A extends B ? (B extends A ? true : false) : false
+type Equal<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false
 
 /**
  * A ∩ B ≠ ∅
@@ -48,7 +48,7 @@ interface EqualType<
 }
 
 type StrictIncludeMap<IncludeType extends 'LR' | 'RL', D extends Exclude<Direction, 'both'>, L, R> = (Equal<[IncludeType, D], ['LR', 'ltr']>
-& Equal<[IncludeType, D], ['RL', 'rtl']>) extends true
+  & Equal<[IncludeType, D], ['RL', 'rtl']>) extends true
   ? {
       transform?: SpecificFieldPartial<Pick<Transform<L, R>, D>, D>
     } : {
@@ -130,7 +130,7 @@ export type SyncRefOptions<L, R, D extends Direction> = ConfigurableFlushSync & 
  * 3. L ⊆ R
  * 4. L ∩ R = ∅
  */
-export function syncRef<L, R, D extends Direction>(
+export function syncRef<L, R, D extends Direction = 'both'>(
   left: Ref<L>,
   right: Ref<R>,
   ...[options]: Equal<L, R> extends true
@@ -151,7 +151,7 @@ export function syncRef<L, R, D extends Direction>(
   const transformRTL = ('rtl' in transform && transform.rtl) || (v => v)
 
   if (direction === 'both' || direction === 'ltr') {
-    watchers.push(pausableWatch(
+    watchers.push(watchPausable(
       left,
       (newValue) => {
         watchers.forEach(w => w.pause())
@@ -163,7 +163,7 @@ export function syncRef<L, R, D extends Direction>(
   }
 
   if (direction === 'both' || direction === 'rtl') {
-    watchers.push(pausableWatch(
+    watchers.push(watchPausable(
       right,
       (newValue) => {
         watchers.forEach(w => w.pause())

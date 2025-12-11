@@ -8,7 +8,7 @@ Reactive dark theme preference.
 
 ## Usage
 
-```js
+```ts
 import { usePreferredDark } from '@vueuse/core'
 
 const isDark = usePreferredDark()
@@ -16,8 +16,10 @@ const isDark = usePreferredDark()
 
 ## Component Usage
 
-```html
-<UsePreferredDark v-slot="{ prefersDark }">
-  Prefers Dark: {{ prefersDark }}
-</UsePreferredDark>
+```vue
+<template>
+  <UsePreferredDark v-slot="{ prefersDark }">
+    Prefers Dark: {{ prefersDark }}
+  </UsePreferredDark>
+</template>
 ```

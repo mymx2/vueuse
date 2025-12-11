@@ -9,14 +9,15 @@ You can also find some reasons for those design decisions and also some tips for
 
 ## General
 
-- Import all Vue APIs from `"vue-demi"`
+- Import all Vue APIs from `"vue"`
 - Use `ref` instead of `reactive` whenever possible
 - Use options object as arguments whenever possible to be more flexible for future extensions.
-- Use `shallowRef` instead of `ref` when wrapping large amounts of data.
+- Prefer `shallowRef` over `ref` whenever possible
+- In case of deep reactivity, prefer explicitly named `deepRef` instead of `ref`
 - Use `configurableWindow` (etc.) when using global variables like `window` to be flexible when working with multi-windows, testing mocks, and SSR.
 - When involved with Web APIs that are not yet implemented by the browser widely, also outputs `isSupported` flag
 - When using `watch` or `watchEffect` internally, also make the `immediate` and `flush` options configurable whenever possible
-- Use `tryOnUnmounted`  to clear the side-effects gracefully
+- Use `tryOnScopeDispose` to clear the side-effects gracefully
 - Avoid using console logs
 - When the function is asynchronous, return a PromiseLike
 
@@ -50,6 +51,7 @@ Learn more about the implementation: [`_configurable.ts`](https://github.com/vue
 ```ts
 import type { ConfigurableWindow } from '../_configurable'
 import { defaultWindow } from '../_configurable'
+import { useEventListener } from '../useEventListener'
 
 export function useActiveElement<T extends HTMLElement>(
   options: ConfigurableWindow = {},
@@ -63,7 +65,7 @@ export function useActiveElement<T extends HTMLElement>(
 
   // skip when in Node.js environment (SSR)
   if (window) {
-    window.addEventListener('blur', () => {
+    useEventListener(window, 'blur', () => {
       el = window?.document.activeElement
     }, true)
   }
@@ -84,7 +86,7 @@ useActiveElement({ window: window.parent })
 When using `watch` or `watchEffect` internally, also make the `immediate` and `flush` options configurable whenever possible. For example `watchDebounced`:
 
 ```ts
-import type { WatchOptions } from 'vue-demi'
+import type { WatchOptions } from 'vue'
 
 // extend the watch options
 export interface WatchDebouncedOptions extends WatchOptions {
@@ -95,7 +97,7 @@ export function watchDebounced(
   source: any,
   cb: any,
   options: WatchDebouncedOptions = {},
-): WatchStopHandle {
+): WatchHandle {
   return watch(
     source,
     () => { /* ... */ },
@@ -110,7 +112,7 @@ We use the `controls` option allowing users to use functions with a single retur
 
 #### When to provide a `controls` option
 
-- The function is more commonly used with single `ref` or 
+- The function is more commonly used with single `ref` or
 - Examples: `useTimestamp`, `useInterval`,
 
 ```ts
@@ -202,7 +204,6 @@ export function useFetch<T>(url: MaybeRefOrGetter<string>): UseFetchReturn<T> & 
 }
 ```
 
-
 ## Renderless Components
 
 - Use render functions instead of Vue SFC
@@ -211,9 +212,9 @@ export function useFetch<T>(url: MaybeRefOrGetter<string>): UseFetchReturn<T> & 
 - Only wrap the slot in an HTML element if the function needs a target to bind to
 
 ```ts
-import { defineComponent, reactive } from 'vue-demi'
 import type { MouseOptions } from '@vueuse/core'
 import { useMouse } from '@vueuse/core'
+import { defineComponent, reactive } from 'vue'
 
 export const UseMouse = defineComponent<MouseOptions>({
   name: 'UseMouse',

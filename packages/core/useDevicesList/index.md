@@ -8,7 +8,7 @@ Reactive [enumerateDevices](https://developer.mozilla.org/en-US/docs/Web/API/Med
 
 ## Usage
 
-```js
+```ts
 import { useDevicesList } from '@vueuse/core'
 
 const {
@@ -19,11 +19,30 @@ const {
 } = useDevicesList()
 ```
 
+## Requesting Permissions
+
+To request permissions, use the `ensurePermissions` method.
+
+```ts
+import { useDevicesList } from '@vueuse/core'
+// ---cut---
+const {
+  ensurePermissions,
+  permissionGranted,
+} = useDevicesList()
+
+await ensurePermissions()
+console.log(permissionsGranted.value)
+```
+
 # Component
-```html
-<UseDevicesList v-slot="{ videoInputs, audioInputs, audioOutputs }">
-  Cameras: {{ videoInputs }}
-  Microphones: {{ audioInputs }}
-  Speakers: {{ audioOutputs }}
-</UseDevicesList>
+
+```vue
+<template>
+  <UseDevicesList v-slot="{ videoInputs, audioInputs, audioOutputs }">
+    Cameras: {{ videoInputs }}
+    Microphones: {{ audioInputs }}
+    Speakers: {{ audioOutputs }}
+  </UseDevicesList>
+</template>
 ```

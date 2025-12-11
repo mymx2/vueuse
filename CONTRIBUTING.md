@@ -6,7 +6,7 @@ Thanks for being interested in contributing to this project!
 >
 > As the VueUse audience continues to grow, we have been inundated with an overwhelming number of feature requests and pull requests. As a result, maintaining the project has become increasingly challenging and has stretched our capacity to its limits. As such, in the near future, we may need to slow down our acceptance of new features and prioritize the stability and quality of existing functions. **Please note that new features for VueUse may not be accepted at this time.** If you have any new ideas, we suggest that you first incorporate them into your own codebase, iterate on them to suit your needs, and assess their generalizability. If you strongly believe that your ideas are beneficial to the community, you may submit a pull request along with your use cases, and we would be happy to review and discuss them. Thank you for your understanding.
 
-## Development 
+## Development
 
 ### Setup
 
@@ -22,6 +22,24 @@ We use VitePress for rapid development and documenting. You can start it locally
 pnpm dev
 ```
 
+### Testing
+
+```bash
+pnpm test:unit # to run unit tests
+```
+
+If you want to use experimental browser tests, you need to install playwright dependencies first.
+
+```bash
+npx playwright install --with-deps
+```
+
+and then run
+
+```bash
+pnpm test:browser
+```
+
 ## Contributing
 
 ### Existing functions
@@ -35,7 +53,7 @@ There are some notes for adding new functions
 - Before you start working, it's better to open an issue to discuss first.
 - The implementation should be placed under `packages/core` as a folder and exposing in `index.ts`
 - In the `core` package, try not to introduce 3rd-party dependencies as this package is aimed to be as lightweight as possible.
-- If you'd like to introduce 3rd-party dependencies, please contribute to @vueuse/integrations or create a new add-on.
+- If you'd like to introduce 3rd-party dependencies, please contribute to [@vueuse/integrations](https://github.com/vueuse/vueuse/tree/main/packages/integrations) or create a new add-on.
 - You can find the function template under `packages/core/_template/`, details explained in the [Function Folder](#function-folder) section.
 - When writing documentation for your function, the `<!--FOOTER_STARTS-->` and `<!--FOOTER_ENDS-->` will be automatically updated at build time, so don't feel the need to update them.
 
@@ -45,7 +63,7 @@ There are some notes for adding new functions
 
 New add-ons are greatly welcome!
 
-- Create a new folder under `packages/`, name it as your add-on name. 
+- Create a new folder under `packages/`, name it as your add-on name.
 - Add add-on details in `scripts/packages.ts`
 - Create `README.md` under that folder.
 - Add functions as you would do to the core package.
@@ -90,7 +108,7 @@ export default useMyFunction
 
 for `index.md` the first sentence will be displayed as the short intro in the function list, so try to keep it brief and clear.
 
-```md
+```markdown
 # useMyFunction
 
 This will be the intro. The detail descriptions...

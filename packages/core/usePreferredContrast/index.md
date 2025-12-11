@@ -8,7 +8,7 @@ Reactive [prefers-contrast](https://developer.mozilla.org/en-US/docs/Web/CSS/@me
 
 ## Usage
 
-```js
+```ts
 import { usePreferredContrast } from '@vueuse/core'
 
 const preferredContrast = usePreferredContrast()
@@ -16,8 +16,10 @@ const preferredContrast = usePreferredContrast()
 
 ## Component Usage
 
-```html
-<UsePreferredContrast v-slot="{ contrast }">
-  Preferred Contrast: {{ contrast }}
-</UsePreferredContrast>
+```vue
+<template>
+  <UsePreferredContrast v-slot="{ contrast }">
+    Preferred Contrast: {{ contrast }}
+  </UsePreferredContrast>
+</template>
 ```

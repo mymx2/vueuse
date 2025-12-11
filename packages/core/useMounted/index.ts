@@ -1,18 +1,25 @@
-// eslint-disable-next-line no-restricted-imports
-import { getCurrentInstance, onMounted, ref } from 'vue-demi'
+import {
+  getCurrentInstance,
+  // eslint-disable-next-line no-restricted-imports
+  onMounted,
+  shallowRef,
+} from 'vue'
 
 /**
  * Mounted state in ref.
  *
  * @see https://vueuse.org/useMounted
+ *
+ * @__NO_SIDE_EFFECTS__
  */
 export function useMounted() {
-  const isMounted = ref(false)
+  const isMounted = shallowRef(false)
 
-  if (getCurrentInstance()) {
+  const instance = getCurrentInstance()
+  if (instance) {
     onMounted(() => {
       isMounted.value = true
-    })
+    }, instance)
   }
 
   return isMounted

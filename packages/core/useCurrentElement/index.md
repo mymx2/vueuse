@@ -14,6 +14,26 @@ import { useCurrentElement } from '@vueuse/core'
 const el = useCurrentElement() // ComputedRef<Element>
 ```
 
+Or pass a specific vue component
+
+```vue
+<script setup lang="ts">
+import { useCurrentElement, VueInstance } from '@vueuse/core'
+import { shallowRef } from 'vue'
+
+const componentRef = shallowRef<VueInstance>(null as unknown as VueInstance)
+
+const el = useCurrentElement(componentRef) // ComputedRef<Element>
+</script>
+
+<template>
+  <div>
+    <OtherVueComponent ref="componentRef" />
+    <p>Hello world</p>
+  </div>
+</template>
+```
+
 ## Caveats
 
 This functions uses [`$el` under the hood](https://vuejs.org/api/component-instance.html#el).

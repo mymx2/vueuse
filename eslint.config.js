@@ -1,10 +1,12 @@
-import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import antfu from '@antfu/eslint-config'
+import { createSimplePlugin } from 'eslint-factory'
+import { createAutoInsert } from 'eslint-plugin-unimport'
 
 const dir = fileURLToPath(new URL('.', import.meta.url))
 const restricted = [
-  'vue',
+  'vue-demi',
   '@vue/reactivity',
   '@vue/runtime-core',
   '@vue/runtime-dom',
@@ -14,20 +16,30 @@ const restricted = [
   resolve(dir, 'packages/core/index.ts'),
   resolve(dir, 'packages/shared/index.ts'),
   {
-    name: 'vue-demi',
+    name: 'vue',
     importNames: ['onMounted', 'onUnmounted', 'unref', 'toRef'],
   },
 ]
 
 export default antfu(
   {
+    formatters: true,
+    pnpm: true,
+    test: {
+      overrides: {
+        'test/padding-around-after-all-blocks': 'error',
+        'test/padding-around-after-each-blocks': 'error',
+        'test/padding-around-before-all-blocks': 'error',
+        'test/padding-around-before-each-blocks': 'error',
+        'test/padding-around-describe-blocks': 'error',
+        'test/padding-around-test-blocks': 'error',
+      },
+    },
     ignores: [
       'patches',
       'playgrounds',
       '**/types',
       '**/cache',
-      '**/dist',
-      '**/.temp',
       '**/*.svg',
     ],
   },
@@ -52,6 +64,7 @@ export default antfu(
       'import/no-named-as-default-member': 'off',
       'node/prefer-global/process': 'off',
       'ts/unified-signatures': 'off',
+      'ts/no-unsafe-function-type': 'off',
       'ts/no-dynamic-delete': 'off',
     },
   },
@@ -82,10 +95,42 @@ export default antfu(
     },
   },
   {
+    files: ['packages/core/**/component.ts'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        paths: restricted,
+        patterns: [{
+          group: ['./*'],
+          message: 'Please use `@vueuse/core` instead.',
+        }],
+      }],
+    },
+  },
+  {
+    files: ['packages/**/component.ts'],
+    ignores: ['packages/core/**/component.ts'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        paths: restricted,
+        patterns: [{
+          group: ['@vueuse/*', '!@vueuse/shared', '!@vueuse/core'],
+        }],
+      }],
+    },
+  },
+  {
+    files: [
+      'packages/*/index.ts',
+    ],
+    rules: {
+      'perfectionist/sort-exports': 'off',
+    },
+  },
+  {
     files: [
       '**/*.md',
-      '**/*.md/**/*.[jt]s',
-      '**/*.md/**/*.vue',
+      '**/*.md/*.[jt]s',
+      '**/*.md/*.vue',
       '**/demo.vue',
       '**/demo.client.vue',
       '**/*.test.ts',
@@ -97,6 +142,9 @@ export default antfu(
       'no-undef': 'off',
       'no-unused-vars': 'off',
       'no-restricted-imports': 'off',
+      'vue/no-unused-vars': 'off',
+      'vue/no-unused-refs': 'off',
+      'vue/require-v-for-key': 'off',
       'ts/no-unused-vars': 'off',
       'ts/no-redeclare': 'off',
       'unused-imports/no-unused-vars': 'off',
@@ -111,4 +159,33 @@ export default antfu(
       'no-restricted-imports': 'off',
     },
   },
+  createAutoInsert({
+    imports: [
+      {
+        from: 'vue',
+        name: 'shallowRef',
+      },
+      {
+        from: 'vue',
+        name: 'ref',
+        as: 'deepRef',
+      },
+    ],
+  }),
+  createSimplePlugin({
+    name: 'no-ref',
+    exclude: ['**/*.md', '**/*.md/**'],
+    create(context) {
+      return {
+        CallExpression(node) {
+          if (node.callee.type === 'Identifier' && node.callee.name === 'ref') {
+            context.report({
+              node,
+              message: 'Usage of ref() is restricted. Use shallowRef() or deepRef() instead.',
+            })
+          }
+        },
+      }
+    },
+  }),
 )

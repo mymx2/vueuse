@@ -7,13 +7,9 @@ outline: deep
 
 Template as Promise. Useful for constructing custom Dialogs, Modals, Toasts, etc.
 
-::: warning
-This function only works for Vue 3
-:::
-
 ## Usage
 
-```html
+```vue
 <script setup lang="ts">
 import { createTemplatePromise } from '@vueuse/core'
 
@@ -28,7 +24,9 @@ async function open() {
 <template>
   <TemplatePromise v-slot="{ promise, resolve, reject, args }">
     <!-- your UI -->
-    <button @click="resolve('ok')">OK</button>
+    <button @click="resolve('ok')">
+      OK
+    </button>
   </TemplatePromise>
 </template>
 ```
@@ -47,7 +45,7 @@ This function is migrated from [vue-template-promise](https://github.com/antfu/v
 
 `createTemplatePromise` returns a **Vue Component** that you can directly use in your template with `<script setup>`
 
-```ts
+```ts twoslash include main
 import { createTemplatePromise } from '@vueuse/core'
 
 const TemplatePromise = createTemplatePromise()
@@ -56,11 +54,13 @@ const MyPromise = createTemplatePromise<boolean>() // with generic type
 
 In template, use `v-slot` to access the promise and resolve functions.
 
-```html
+```vue
 <template>
   <TemplatePromise v-slot="{ promise, resolve, reject, args }">
     <!-- you can have anything -->
-    <button @click="resolve('ok')">OK</button>
+    <button @click="resolve('ok')">
+      OK
+    </button>
   </TemplatePromise>
   <MyPromise v-slot="{ promise, resolve, reject, args }">
     <!-- another one -->
@@ -71,6 +71,8 @@ In template, use `v-slot` to access the promise and resolve functions.
 The slot will not be rendered initially (similar to `v-if="false"`), until you call the `start` method from the component.
 
 ```ts
+// @include: main
+// ---cut---
 const result = await TemplatePromise.start()
 ```
 
@@ -80,24 +82,30 @@ Once `resolve` or `reject` is called in the template, the promise will be resolv
 
 You can pass arguments to the `start` with arguments.
 
-```ts
+```ts twoslash include passing-arguments
 import { createTemplatePromise } from '@vueuse/core'
 
 const TemplatePromise = createTemplatePromise<boolean, [string, number]>()
 ```
 
 ```ts
+// @include: passing-arguments
+// ---cut---
 const result = await TemplatePromise.start('hello', 123) // Pr
 ```
 
 And in the template slot, you can access the arguments via `args` property.
 
-```html
+```vue
 <template>
   <TemplatePromise v-slot="{ args, resolve }">
-    <div>{{ args[0] }}</div> <!-- hello -->
-    <div>{{ args[1] }}</div> <!-- 123 -->
-    <button @click="resolve(true)">OK</button>
+    <div>{{ args[0] }}</div>
+    <!-- hello -->
+    <div>{{ args[1] }}</div>
+    <!-- 123 -->
+    <button @click="resolve(true)">
+      OK
+    </button>
   </TemplatePromise>
 </template>
 ```
@@ -106,7 +114,7 @@ And in the template slot, you can access the arguments via `args` property.
 
 You can use transition to animate the slot.
 
-```html
+```vue
 <script setup lang="ts">
 const TemplatePromise = createTemplatePromise<ReturnType>({
   transition: {
@@ -119,25 +127,29 @@ const TemplatePromise = createTemplatePromise<ReturnType>({
 <template>
   <TemplatePromise v-slot="{ resolve }">
     <!-- your UI -->
-    <button @click="resolve('ok')">OK</button>
+    <button @click="resolve('ok')">
+      OK
+    </button>
   </TemplatePromise>
 </template>
 
 <style scoped>
-.fade-enter-active, .fade-leave-active {
-  transition: opacity .5s;
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s;
 }
-.fade-enter, .fade-leave-to {
+.fade-enter,
+.fade-leave-to {
   opacity: 0;
 }
 </style>
 ```
 
-Learn more about [Vue Transition](https://v3.vuejs.org/guide/transitions-overview.html).
+Learn more about [Vue Transition](https://vuejs.org/guide/built-ins/transition.html).
 
 ## Motivation
 
-The common approach to call a dialog or a model programmatically would be like this:
+The common approach to call a dialog or a modal programmatically would be like this:
 
 ```ts
 const dialog = useDialog()

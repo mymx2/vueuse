@@ -1,13 +1,15 @@
-import type { Awaitable, MaybeRefOrGetter } from '@vueuse/shared'
-import { toValue } from '@vueuse/shared'
-import type { UnwrapNestedRefs } from 'vue-demi'
-import { computed, nextTick, reactive, ref, watch } from 'vue-demi'
-import { useElementVisibility } from '../useElementVisibility'
+import type { Awaitable } from '@vueuse/shared'
+import type { MaybeRefOrGetter, UnwrapNestedRefs } from 'vue'
 import type { UseScrollOptions } from '../useScroll'
-import { useScroll } from '../useScroll'
+import { tryOnUnmounted } from '@vueuse/shared'
+import { computed, ref as deepRef, nextTick, reactive, toValue, watch } from 'vue'
 import { resolveElement } from '../_resolve-element'
+import { useElementVisibility } from '../useElementVisibility'
+import { useScroll } from '../useScroll'
 
-export interface UseInfiniteScrollOptions extends UseScrollOptions {
+type InfiniteScrollElement = HTMLElement | SVGElement | Window | Document | null | undefined
+
+export interface UseInfiniteScrollOptions<T extends InfiniteScrollElement = InfiniteScrollElement> extends UseScrollOptions {
   /**
    * The minimum distance between the bottom of the element and the bottom of the viewport
    *
@@ -28,6 +30,13 @@ export interface UseInfiniteScrollOptions extends UseScrollOptions {
    * @default 100
    */
   interval?: number
+
+  /**
+   * A function that determines whether more content can be loaded for a specific element.
+   * Should return `true` if loading more content is allowed for the given element,
+   * and `false` otherwise.
+   */
+  canLoadMore?: (el: T) => boolean
 }
 
 /**
@@ -35,14 +44,15 @@ export interface UseInfiniteScrollOptions extends UseScrollOptions {
  *
  * @see https://vueuse.org/useInfiniteScroll
  */
-export function useInfiniteScroll(
-  element: MaybeRefOrGetter<HTMLElement | SVGElement | Window | Document | null | undefined>,
+export function useInfiniteScroll<T extends InfiniteScrollElement>(
+  element: MaybeRefOrGetter<T>,
   onLoadMore: (state: UnwrapNestedRefs<ReturnType<typeof useScroll>>) => Awaitable<void>,
-  options: UseInfiniteScrollOptions = {},
+  options: UseInfiniteScrollOptions<T> = {},
 ) {
   const {
     direction = 'bottom',
     interval = 100,
+    canLoadMore = () => true,
   } = options
 
   const state = reactive(useScroll(
@@ -56,7 +66,7 @@ export function useInfiniteScroll(
     },
   ))
 
-  const promise = ref<any>()
+  const promise = deepRef<any>()
   const isLoading = computed(() => !!promise.value)
 
   // Document and Window cannot be observed by IntersectionObserver
@@ -66,10 +76,16 @@ export function useInfiniteScroll(
 
   const isElementVisible = useElementVisibility(observedElement)
 
+  const canLoad = computed(() => {
+    if (!observedElement.value)
+      return false
+    return canLoadMore(observedElement.value as T)
+  })
+
   function checkAndLoad() {
     state.measure()
 
-    if (!observedElement.value || !isElementVisible.value)
+    if (!observedElement.value || !isElementVisible.value || !canLoad.value)
       return
 
     const { scrollHeight, clientHeight, scrollWidth, clientWidth } = observedElement.value as HTMLElement
@@ -91,13 +107,18 @@ export function useInfiniteScroll(
     }
   }
 
-  watch(
-    () => [state.arrivedState[direction], isElementVisible.value],
+  const stop = watch(
+    () => [state.arrivedState[direction], isElementVisible.value, canLoad.value],
     checkAndLoad,
     { immediate: true },
   )
 
+  tryOnUnmounted(stop)
+
   return {
     isLoading,
+    reset() {
+      nextTick(() => checkAndLoad())
+    },
   }
 }

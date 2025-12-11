@@ -1,10 +1,10 @@
-import { computed, ref } from 'vue-demi'
-import { tryOnScopeDispose } from '@vueuse/shared'
+import type { ConfigurableDocument } from '../_configurable'
 import type { MaybeElementRef } from '../unrefElement'
+import { tryOnMounted, tryOnScopeDispose } from '@vueuse/shared'
+import { computed, shallowRef } from 'vue'
+import { defaultDocument } from '../_configurable'
 import { unrefElement } from '../unrefElement'
 import { useEventListener } from '../useEventListener'
-import type { ConfigurableDocument } from '../_configurable'
-import { defaultDocument } from '../_configurable'
 import { useSupported } from '../useSupported'
 
 export interface UseFullscreenOptions extends ConfigurableDocument {
@@ -40,8 +40,8 @@ export function useFullscreen(
     autoExit = false,
   } = options
 
-  const targetRef = computed(() => unrefElement(target) ?? document?.querySelector('html'))
-  const isFullscreen = ref(false)
+  const targetRef = computed(() => unrefElement(target) ?? document?.documentElement)
+  const isFullscreen = shallowRef(false)
 
   const requestMethod = computed<'requestFullscreen' | undefined>(() => {
     return [
@@ -52,7 +52,7 @@ export function useFullscreen(
       'webkitRequestFullScreen',
       'mozRequestFullScreen',
       'msRequestFullscreen',
-    ].find(m => (document && m in document) || (targetRef.value && m in targetRef.value)) as any
+    ].find(m => (document && m in document) || (targetRef.value && m in targetRef.value)) as 'requestFullscreen' | undefined
   })
 
   const exitMethod = computed<'exitFullscreen' | undefined>(() => {
@@ -63,7 +63,7 @@ export function useFullscreen(
       'webkitCancelFullScreen',
       'mozCancelFullScreen',
       'msExitFullscreen',
-    ].find(m => (document && m in document) || (targetRef.value && m in targetRef.value)) as any
+    ].find(m => (document && m in document) || (targetRef.value && m in targetRef.value)) as 'exitFullscreen' | undefined
   })
 
   const fullscreenEnabled = computed<'fullscreenEnabled' | undefined>(() => {
@@ -73,7 +73,7 @@ export function useFullscreen(
       'webkitDisplayingFullscreen',
       'mozFullScreen',
       'msFullscreenElement',
-    ].find(m => (document && m in document) || (targetRef.value && m in targetRef.value)) as any
+    ].find(m => (document && m in document) || (targetRef.value && m in targetRef.value)) as 'fullscreenEnabled' | undefined
   })
 
   const fullscreenElementMethod = [
@@ -156,8 +156,11 @@ export function useFullscreen(
       isFullscreen.value = isElementFullScreenValue
   }
 
-  useEventListener(document, eventHandlers, handlerCallback, false)
-  useEventListener(() => unrefElement(targetRef), eventHandlers, handlerCallback, false)
+  const listenerOptions = { capture: false, passive: true }
+  useEventListener(document, eventHandlers, handlerCallback, listenerOptions)
+  useEventListener(() => unrefElement(targetRef), eventHandlers, handlerCallback, listenerOptions)
+
+  tryOnMounted(handlerCallback, false)
 
   if (autoExit)
     tryOnScopeDispose(exit)

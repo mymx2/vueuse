@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
 import type { UseSwipeDirection } from '@vueuse/core'
 import { useSwipe } from '@vueuse/core'
+import { computed, shallowRef, useTemplateRef } from 'vue'
 
-const target = ref<HTMLElement | null>(null)
-const container = ref<HTMLElement | null>(null)
+const target = useTemplateRef('target')
+const container = useTemplateRef('container')
 const containerWidth = computed(() => container.value?.offsetWidth)
-const left = ref('0')
-const opacity = ref(1)
+const left = shallowRef('0')
+const opacity = shallowRef(1)
 
 function reset() {
   left.value = '0'
@@ -89,7 +89,7 @@ const { direction, isSwiping, lengthX, lengthY } = useSwipe(
   color: #fff;
   font-weight: bold;
   text-align: center;
-  overflow:hidden;
+  overflow: hidden;
   white-space: nowrap;
 }
 

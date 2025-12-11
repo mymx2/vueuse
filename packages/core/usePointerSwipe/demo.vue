@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { usePointerSwipe } from '@vueuse/core'
 import type { UseSwipeDirection } from '@vueuse/core'
+import { usePointerSwipe } from '@vueuse/core'
+import { computed, shallowRef, useTemplateRef } from 'vue'
 
-const target = ref<HTMLElement | null>(null)
-const container = ref<HTMLElement | null>(null)
+const target = useTemplateRef('target')
+const container = useTemplateRef('container')
 
 const containerWidth = computed(() => container.value?.offsetWidth)
 
-const left = ref('0')
-const opacity = ref(1)
+const left = shallowRef('0')
+const opacity = shallowRef(1)
 
 function reset() {
   left.value = '0'
@@ -17,6 +17,7 @@ function reset() {
 }
 
 const { distanceX, isSwiping } = usePointerSwipe(target, {
+  disableTextSelect: true,
   onSwipe(e: PointerEvent) {
     if (containerWidth.value) {
       if (distanceX.value < 0) {

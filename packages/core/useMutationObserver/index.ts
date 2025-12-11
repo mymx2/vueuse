@@ -1,10 +1,11 @@
-import { tryOnScopeDispose } from '@vueuse/shared'
-import { watch } from 'vue-demi'
-import type { MaybeComputedElementRef } from '../unrefElement'
+import type { MaybeRefOrGetter } from 'vue'
+import type { ConfigurableWindow } from '../_configurable'
+import type { MaybeComputedElementRef, MaybeElement } from '../unrefElement'
+import { notNullish, toArray, tryOnScopeDispose } from '@vueuse/shared'
+import { computed, toValue, watch } from 'vue'
+import { defaultWindow } from '../_configurable'
 import { unrefElement } from '../unrefElement'
 import { useSupported } from '../useSupported'
-import type { ConfigurableWindow } from '../_configurable'
-import { defaultWindow } from '../_configurable'
 
 export interface UseMutationObserverOptions extends MutationObserverInit, ConfigurableWindow {}
 
@@ -18,7 +19,7 @@ export interface UseMutationObserverOptions extends MutationObserverInit, Config
  * @param options
  */
 export function useMutationObserver(
-  target: MaybeComputedElementRef,
+  target: MaybeComputedElementRef | MaybeComputedElementRef[] | MaybeRefOrGetter<MaybeElement[]>,
   callback: MutationCallback,
   options: UseMutationObserverOptions = {},
 ) {
@@ -33,17 +34,25 @@ export function useMutationObserver(
     }
   }
 
+  const targets = computed(() => {
+    const value = toValue(target)
+    const items = toArray(value)
+      .map(unrefElement)
+      .filter(notNullish)
+    return new Set(items)
+  })
+
   const stopWatch = watch(
-    () => unrefElement(target),
-    (el) => {
+    targets,
+    (newTargets) => {
       cleanup()
 
-      if (isSupported.value && window && el) {
+      if (isSupported.value && newTargets.size) {
         observer = new MutationObserver(callback)
-        observer!.observe(el, mutationOptions)
+        newTargets.forEach(el => observer!.observe(el, mutationOptions))
       }
     },
-    { immediate: true },
+    { immediate: true, flush: 'post' },
   )
 
   const takeRecords = () => {
@@ -51,8 +60,8 @@ export function useMutationObserver(
   }
 
   const stop = () => {
-    cleanup()
     stopWatch()
+    cleanup()
   }
 
   tryOnScopeDispose(stop)

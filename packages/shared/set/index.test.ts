@@ -1,10 +1,10 @@
-import { reactive, ref, watch } from 'vue-demi'
 import { describe, expect, it } from 'vitest'
-import { set } from '.'
+import { reactive, shallowRef, watch } from 'vue'
+import { set } from './index'
 
 describe('set', () => {
   it('set ref', () => {
-    const source = ref('foo')
+    const source = shallowRef('foo')
 
     expect(source.value).toBe('foo')
 
@@ -15,7 +15,7 @@ describe('set', () => {
 
   it('set reactive', () => {
     let changed = 0
-    const source = reactive<{ foo: string; bar?: number }>({ foo: 'bar' })
+    const source = reactive<{ foo: string, bar?: number }>({ foo: 'bar' })
 
     watch(source, () => changed += 1, { deep: true, flush: 'sync' })
 

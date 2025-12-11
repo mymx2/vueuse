@@ -1,9 +1,9 @@
+import type { Import, Preset } from 'unimport'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { isPackageExists } from 'local-pkg'
 import { defineNuxtModule } from '@nuxt/kit'
 import { metadata } from '@vueuse/metadata'
-import type { Import, Preset } from 'unimport'
+import { isPackageExists } from 'local-pkg'
 
 const _dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -17,7 +17,6 @@ const disabledFunctions = [
   'useFetch',
   'useCookie',
   'useHead',
-  'useTitle',
   'useStorage',
   'useImage',
 ]
@@ -31,6 +30,7 @@ const packages = [
   'rxjs',
   'sound',
   'math',
+  'router',
 ]
 
 const fullPackages = packages.map(p => `@vueuse/${p}`)
@@ -75,7 +75,10 @@ export default defineNuxtModule<VueUseNuxtOptions>({
     nuxt.hook('vite:extend', ({ config }: any) => {
       config.optimizeDeps = config.optimizeDeps || {}
       config.optimizeDeps.exclude = config.optimizeDeps.exclude || []
-      config.optimizeDeps.exclude.push(...fullPackages)
+      for (const pkg of fullPackages) {
+        if (!config.optimizeDeps.exclude.includes(pkg))
+          config.optimizeDeps.exclude.push(pkg)
+      }
     })
 
     // add packages to transpile target for alias resolution
@@ -118,8 +121,12 @@ export default defineNuxtModule<VueUseNuxtOptions>({
           if (pkg === 'shared')
             continue
 
-          if (!isPackageExists(`@vueuse/${pkg}`))
+          if (pkg !== 'core' && !isPackageExists(
+            `@vueuse/${pkg}`,
+            { paths: nuxt.options._layers.map(layer => layer.config.rootDir) },
+          )) {
             continue
+          }
 
           const imports = metadata
             .functions

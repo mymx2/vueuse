@@ -1,7 +1,7 @@
-import { isRef, nextTick, ref } from 'vue-demi'
+import type { UseOffsetPaginationOptions, UseOffsetPaginationReturn } from './index'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { UseOffsetPaginationOptions, UseOffsetPaginationReturn } from '.'
-import { useOffsetPagination } from '.'
+import { isRef, nextTick, shallowRef } from 'vue'
+import { useOffsetPagination } from './index'
 
 describe('useOffsetPagination', () => {
   it('should be defined', () => {
@@ -110,7 +110,7 @@ describe('useOffsetPagination', () => {
 
   describe('when the page is outside of the range of possible pages', () => {
     let currentPage: UseOffsetPaginationReturn['currentPage']
-    const page: UseOffsetPaginationOptions['page'] = ref(0)
+    const page: UseOffsetPaginationOptions['page'] = shallowRef(0)
 
     beforeEach(() => {
       ({
@@ -139,7 +139,7 @@ describe('useOffsetPagination', () => {
 
   describe('when the page is a ref', () => {
     let currentPage: UseOffsetPaginationReturn['currentPage']
-    const pageRef = ref(0)
+    const pageRef = shallowRef(0)
 
     beforeEach(() => {
       pageRef.value = 2;
@@ -206,7 +206,7 @@ describe('useOffsetPagination', () => {
 
     describe('when pageSize is given as a ref', () => {
       let currentPageSize: UseOffsetPaginationReturn['currentPageSize']
-      const pageSize = ref(11)
+      const pageSize = shallowRef(11)
 
       beforeEach(() => {
         ({
@@ -308,7 +308,7 @@ describe('useOffsetPagination', () => {
   describe('onPageChange', () => {
     it('is called when the page changes', async () => {
       const onPageChange = vi.fn()
-      const page = ref(1)
+      const page = shallowRef(1)
 
       useOffsetPagination({
         total: 50,
@@ -333,7 +333,7 @@ describe('useOffsetPagination', () => {
 
     it('is called with the correct UseOffsetPaginationReturn values', async () => {
       const onPageChange = vi.fn()
-      const page = ref(1)
+      const page = shallowRef(1)
 
       useOffsetPagination({
         total: 35,
@@ -343,7 +343,7 @@ describe('useOffsetPagination', () => {
 
       page.value = 2
       await nextTick()
-      expect(onPageChange).toBeCalledWith(expect.objectContaining({
+      expect(onPageChange).toBeCalledWith({
         currentPage: 2,
         currentPageSize: 10,
         isFirstPage: false,
@@ -351,11 +351,11 @@ describe('useOffsetPagination', () => {
         next: expect.any(Function),
         pageCount: 4,
         prev: expect.any(Function),
-      }))
+      })
 
       page.value = 3
       await nextTick()
-      expect(onPageChange).toBeCalledWith(expect.objectContaining({
+      expect(onPageChange).toBeCalledWith({
         currentPage: 3,
         currentPageSize: 10,
         isFirstPage: false,
@@ -363,11 +363,11 @@ describe('useOffsetPagination', () => {
         next: expect.any(Function),
         pageCount: 4,
         prev: expect.any(Function),
-      }))
+      })
 
       page.value = 4
       await nextTick()
-      expect(onPageChange).toBeCalledWith(expect.objectContaining({
+      expect(onPageChange).toBeCalledWith({
         currentPage: 4,
         currentPageSize: 10,
         isFirstPage: false,
@@ -375,11 +375,11 @@ describe('useOffsetPagination', () => {
         next: expect.any(Function),
         pageCount: 4,
         prev: expect.any(Function),
-      }))
+      })
 
       page.value = 1
       await nextTick()
-      expect(onPageChange).toBeCalledWith(expect.objectContaining({
+      expect(onPageChange).toBeCalledWith({
         currentPage: 1,
         currentPageSize: 10,
         isFirstPage: true,
@@ -387,14 +387,14 @@ describe('useOffsetPagination', () => {
         next: expect.any(Function),
         pageCount: 4,
         prev: expect.any(Function),
-      }))
+      })
     })
   })
 
   describe('onPageSizeChange', () => {
     it('is called when the page size changes', async () => {
       const onPageSizeChange = vi.fn()
-      const pageSize = ref(5)
+      const pageSize = shallowRef(5)
 
       useOffsetPagination({
         total: 50,
@@ -412,7 +412,7 @@ describe('useOffsetPagination', () => {
     })
 
     it('is called with the correct UseOffsetPaginationReturn values', async () => {
-      const pageSize = ref(5)
+      const pageSize = shallowRef(5)
       const onPageSizeChange = vi.fn()
 
       useOffsetPagination({
@@ -423,7 +423,7 @@ describe('useOffsetPagination', () => {
 
       pageSize.value = 3
       await nextTick()
-      expect(onPageSizeChange).toBeCalledWith(expect.objectContaining({
+      expect(onPageSizeChange).toBeCalledWith({
         currentPage: 1,
         currentPageSize: 3,
         isFirstPage: true,
@@ -431,11 +431,11 @@ describe('useOffsetPagination', () => {
         next: expect.any(Function),
         pageCount: 12,
         prev: expect.any(Function),
-      }))
+      })
 
       pageSize.value = 30
       await nextTick()
-      expect(onPageSizeChange).toBeCalledWith(expect.objectContaining({
+      expect(onPageSizeChange).toBeCalledWith({
         currentPage: 1,
         currentPageSize: 30,
         isFirstPage: true,
@@ -443,14 +443,14 @@ describe('useOffsetPagination', () => {
         next: expect.any(Function),
         pageCount: 2,
         prev: expect.any(Function),
-      }))
+      })
     })
   })
 
   describe('onPageCountChange', () => {
     it('is called when the page count changes', async () => {
       const onPageCountChange = vi.fn()
-      const pageSize = ref(5)
+      const pageSize = shallowRef(5)
 
       useOffsetPagination({
         total: 50,
@@ -468,7 +468,7 @@ describe('useOffsetPagination', () => {
     })
 
     it('is called with the correct UseOffsetPaginationReturn values', async () => {
-      const pageSize = ref(5)
+      const pageSize = shallowRef(5)
       const onPageCountChange = vi.fn()
 
       useOffsetPagination({
@@ -479,7 +479,7 @@ describe('useOffsetPagination', () => {
 
       pageSize.value = 3
       await nextTick()
-      expect(onPageCountChange).toBeCalledWith(expect.objectContaining({
+      expect(onPageCountChange).toBeCalledWith({
         currentPage: 1,
         currentPageSize: 3,
         isFirstPage: true,
@@ -487,11 +487,11 @@ describe('useOffsetPagination', () => {
         next: expect.any(Function),
         pageCount: 12,
         prev: expect.any(Function),
-      }))
+      })
 
       pageSize.value = 30
       await nextTick()
-      expect(onPageCountChange).toBeCalledWith(expect.objectContaining({
+      expect(onPageCountChange).toBeCalledWith({
         currentPage: 1,
         currentPageSize: 30,
         isFirstPage: true,
@@ -499,7 +499,7 @@ describe('useOffsetPagination', () => {
         next: expect.any(Function),
         pageCount: 2,
         prev: expect.any(Function),
-      }))
+      })
     })
   })
 })

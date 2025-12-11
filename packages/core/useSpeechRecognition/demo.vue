@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
 import { useSpeechRecognition } from '@vueuse/core'
+import { shallowRef, watch } from 'vue'
 
-const lang = ref('en-US')
+const lang = shallowRef('en-US')
 
 function sample<T>(arr: T[], size: number) {
   const shuffled = arr.slice(0)
@@ -26,7 +26,7 @@ const speech = useSpeechRecognition({
   continuous: true,
 })
 
-const color = ref('transparent')
+const color = shallowRef('transparent')
 
 if (speech.isSupported.value) {
   // @ts-expect-error missing types
@@ -45,7 +45,7 @@ if (speech.isSupported.value) {
   })
 }
 
-const sampled = ref<string[]>([])
+const sampled = shallowRef<string[]>([])
 
 function start() {
   color.value = 'transparent'
@@ -56,7 +56,7 @@ function start() {
 
 const { isListening, isSupported, stop, result } = speech
 
-const selectedLanguage = ref(lang.value)
+const selectedLanguage = shallowRef(lang.value)
 watch(lang, lang => isListening.value ? null : selectedLanguage.value = lang)
 watch(isListening, isListening => isListening ? null : selectedLanguage.value = lang.value)
 </script>
@@ -71,7 +71,7 @@ watch(isListening, isListening => isListening ? null : selectedLanguage.value = 
       >more details</a>
     </div>
     <div v-else>
-      <div space-x-4>
+      <div flex="~ items-center gap-x-4 wrap">
         <label class="radio">
           <input v-model="lang" value="en-US" type="radio">
           <span>English (US)</span>
@@ -119,49 +119,3 @@ watch(isListening, isListening => isListening ? null : selectedLanguage.value = 
     </div>
   </div>
 </template>
-
-<!-- <style scoped>
-.tag {
-  padding: 0.3rem 0.6rem;
-  margin-right: 0.5rem;
-  border-radius: 4px;
-}
-</style> -->
-
-<style scoped lang="postcss">
-input {
-  --tw-ring-offset-width: 1px !important;
-  --tw-ring-color: #8885 !important;
-  --tw-ring-offset-color: transparent !important;
-}
-
-.radio {
-  @apply inline-flex items-center my-auto cursor-pointer select-none;
-}
-
-.radio input {
-  appearance: none;
-  padding: 0;
-  -webkit-print-color-adjust: exact;
-  color-adjust: exact;
-  display: inline-block;
-  vertical-align: middle;
-  background-origin: border-box;
-  user-select: none;
-  flex-shrink: 0;
-  height: 1rem;
-  width: 1rem;
-  @apply bg-gray-400/30;
-  @apply rounded-full h-4 w-4 select-none relative;
-  @apply mr-1;
-}
-
-.radio input:checked::after {
-  content: '';
-  @apply absolute inset-[3px] rounded-full bg-primary;
-}
-
-.checkbox span {
-  @apply ml-1.5 text-13px opacity-70;
-}
-</style>

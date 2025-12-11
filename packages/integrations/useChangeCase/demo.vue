@@ -1,32 +1,18 @@
 <script setup lang="ts">
-import { computed, ref, shallowReadonly } from 'vue-demi'
-import { useChangeCase } from '.'
-import type { ChangeCaseType } from '.'
+import type { ChangeCaseType } from '@vueuse/integrations/useChangeCase'
+import { useChangeCase } from '@vueuse/integrations/useChangeCase'
+import * as ChangeCase from 'change-case'
+import { shallowRef } from 'vue'
 
-const arr: Array<ChangeCaseType> = [
-  'camelCase',
-  'capitalCase',
-  'constantCase',
-  'dotCase',
-  'headerCase',
-  'noCase',
-  'paramCase',
-  'pascalCase',
-  'pathCase',
-  'sentenceCase',
-  'snakeCase',
-]
-const types = shallowReadonly(arr)
-const input = ref('helloWorld')
-const type = ref<ChangeCaseType>(arr[0])
-const changeCase = computed(() => {
-  return useChangeCase(input, type.value)
-})
+const transforms: any = Object.keys(ChangeCase).filter(v => v.endsWith('Case'))
+const input = shallowRef('helloWorld')
+const type = shallowRef<ChangeCaseType>(transforms[0])
+const changeCase = useChangeCase(input, type)
 </script>
 
 <template>
   <div>
-    <label v-for="item in types" :key="item" class="radio">
+    <label v-for="item in transforms" :key="item" class="radio">
       <input v-model="type" :value="item" type="radio">
       <span>{{ item }}</span>
     </label>
@@ -36,44 +22,8 @@ const changeCase = computed(() => {
 </template>
 
 <style scoped>
-</style>
-
-<style scoped lang="postcss">
-input {
-  --tw-ring-offset-width: 1px !important;
-  --tw-ring-color: #8885 !important;
-  --tw-ring-offset-color: transparent !important;
-}
-
 .radio {
-  width: 7rem;
-  @apply ml-2;
-  @apply inline-flex items-center my-auto cursor-pointer select-none;
-}
-
-.radio input {
-  appearance: none;
-  padding: 0;
-  -webkit-print-color-adjust: exact;
-  color-adjust: exact;
-  display: inline-block;
-  vertical-align: middle;
-  background-origin: border-box;
-  user-select: none;
-  flex-shrink: 0;
-  height: 1rem;
-  width: 1rem;
-  @apply bg-gray-400/30;
-  @apply rounded-full h-4 w-4 select-none relative;
-  @apply mr-1;
-}
-
-.radio input:checked::after {
-  content: "";
-  @apply absolute inset-[3px] rounded-full bg-primary;
-}
-
-.checkbox span {
-  @apply ml-1.5 text-13px opacity-70;
+  width: 9rem;
+  margin-left: 0.5rem;
 }
 </style>

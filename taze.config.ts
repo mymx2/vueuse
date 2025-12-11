@@ -6,9 +6,6 @@ export default defineConfig({
     'rxjs',
     'electron',
     'msw',
-    'vue2',
-    // TODO: migrate
-    'vitepress',
   ],
   packageMode: {
     vue: 'minor',

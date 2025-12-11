@@ -1,5 +1,4 @@
-import { hasOwn } from '@vueuse/shared'
-import { del, isVue2, set, shallowReactive } from 'vue-demi'
+import { shallowReactive } from 'vue'
 
 type CacheKey = any
 
@@ -10,41 +9,23 @@ export interface UseMemoizeCache<Key, Value> {
   /**
    * Get value for key
    */
-  get(key: Key): Value | undefined
+  get: (key: Key) => Value | undefined
   /**
    * Set value for key
    */
-  set(key: Key, value: Value): void
+  set: (key: Key, value: Value) => void
   /**
    * Return flag if key exists
    */
-  has(key: Key): boolean
+  has: (key: Key) => boolean
   /**
    * Delete value for key
    */
-  delete(key: Key): void
+  delete: (key: Key) => void
   /**
    * Clear cache
    */
-  clear(): void
-}
-
-/**
- * Fallback for Vue 2 not able to make a reactive Map
- */
-function getMapVue2Compat<Value>(): UseMemoizeCache<CacheKey, Value> {
-  const data: Record<CacheKey, Value> = shallowReactive({})
-  return {
-    get: key => data[key],
-    set: (key, value) => set(data, key, value),
-    has: key => hasOwn(data, key),
-    delete: key => del(data, key),
-    clear: () => {
-      Object.keys(data).forEach((key) => {
-        del(data, key)
-      })
-    },
-  }
+  clear: () => void
 }
 
 /**
@@ -58,19 +39,19 @@ export interface UseMemoizeReturn<Result, Args extends unknown[]> {
   /**
    * Call memoized function and update cache
    */
-  load(...args: Args): Result
+  load: (...args: Args) => Result
   /**
    * Delete cache of given arguments
    */
-  delete(...args: Args): void
+  delete: (...args: Args) => void
   /**
    * Clear cache
    */
-  clear(): void
+  clear: () => void
   /**
    * Generate cache key for given arguments
    */
-  generateKey(...args: Args): CacheKey
+  generateKey: (...args: Args) => CacheKey
   /**
    * Cache container
    */
@@ -84,6 +65,8 @@ export interface UseMemoizeOptions<Result, Args extends unknown[]> {
 
 /**
  * Reactive function result cache based on arguments
+ *
+ * @__NO_SIDE_EFFECTS__
  */
 export function useMemoize<Result, Args extends unknown[]>(
   resolver: (...args: Args) => Result,
@@ -92,9 +75,6 @@ export function useMemoize<Result, Args extends unknown[]>(
   const initCache = (): UseMemoizeCache<CacheKey, Result> => {
     if (options?.cache)
       return shallowReactive(options.cache)
-    // Use fallback for Vue 2 not able to make a reactive Map
-    if (isVue2)
-      return getMapVue2Compat<Result>()
     return shallowReactive(new Map<CacheKey, Result>())
   }
   const cache = initCache()

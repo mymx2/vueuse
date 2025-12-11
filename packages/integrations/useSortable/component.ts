@@ -1,35 +1,39 @@
-import { type PropType, defineComponent, h, reactive, ref } from 'vue-demi'
+import type { RenderableComponent } from '@vueuse/core'
+import type { Reactive, SlotsType } from 'vue'
+import type { UseSortableOptions, UseSortableReturn } from './index'
 import { useVModel } from '@vueuse/core'
-import { type UseSortableOptions, useSortable } from '.'
+import { defineComponent, h, reactive, shallowRef } from 'vue'
+import { useSortable } from './index'
 
-export const UseSortable = /* #__PURE__ */ defineComponent({
-  name: 'UseSortable',
-  model: { // Compatible with vue2
-    prop: 'modelValue',
-    event: 'update:modelValue',
-  },
-  props: {
-    modelValue: {
-      type: Array as PropType<any[]>,
-      required: true,
-    },
-    tag: {
-      type: String,
-      default: 'div',
-    },
-    options: {
-      type: Object as PropType<UseSortableOptions>,
-      required: true,
-    },
-  },
+export interface UseSortableProps extends RenderableComponent {
+  modelValue: any[]
+  options?: UseSortableOptions
+}
+interface UseSortableSlots {
+  default: (data: Reactive<UseSortableReturn>) => any
+}
 
-  setup(props, { slots }) {
+export const UseSortable = /* #__PURE__ */ defineComponent<
+  UseSortableProps,
+  Record<string, never>,
+  string,
+  SlotsType<UseSortableSlots>
+>(
+  (props, { slots }) => {
     const list = useVModel(props, 'modelValue')
-    const target = ref()
+    const target = shallowRef<HTMLElement>()
     const data = reactive(useSortable(target, list, props.options))
     return () => {
       if (slots.default)
-        return h(props.tag, { ref: target }, slots.default(data))
+        return h(props.as || 'div', { ref: target }, slots.default(data))
     }
   },
-})
+  {
+    name: 'UseSortable',
+    props: [
+      'as',
+      'modelValue',
+      'options',
+    ],
+  },
+)

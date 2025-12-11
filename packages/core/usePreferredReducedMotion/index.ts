@@ -1,6 +1,6 @@
-import { computed } from 'vue-demi'
-import { useMediaQuery } from '../useMediaQuery'
 import type { ConfigurableWindow } from '../_configurable'
+import { computed } from 'vue'
+import { useMediaQuery } from '../useMediaQuery'
 
 export type ReducedMotionType = 'reduce' | 'no-preference'
 
@@ -9,6 +9,8 @@ export type ReducedMotionType = 'reduce' | 'no-preference'
  *
  * @see https://vueuse.org/usePreferredReducedMotion
  * @param [options]
+ *
+ * @__NO_SIDE_EFFECTS__
  */
 export function usePreferredReducedMotion(options?: ConfigurableWindow) {
   const isReduced = useMediaQuery('(prefers-reduced-motion: reduce)', options)

@@ -1,14 +1,13 @@
 /* this implementation is original ported from https://github.com/logaretm/vue-use-web by Abdelrahman Awad */
 
-import type { MaybeRefOrGetter } from '@vueuse/shared'
-import { toValue, useTimeoutFn } from '@vueuse/shared'
-import type { ComputedRef, Ref } from 'vue-demi'
-import { computed, ref } from 'vue-demi'
-import { useEventListener } from '../useEventListener'
-import { useSupported } from '../useSupported'
+import type { ComputedRef, MaybeRefOrGetter, ShallowRef } from 'vue'
 import type { ConfigurableNavigator } from '../_configurable'
+import { useTimeoutFn } from '@vueuse/shared'
+import { computed, readonly, shallowRef, toValue } from 'vue'
 import { defaultNavigator } from '../_configurable'
+import { useEventListener } from '../useEventListener'
 import { usePermission } from '../usePermission'
+import { useSupported } from '../useSupported'
 
 export interface UseClipboardOptions<Source> extends ConfigurableNavigator {
   /**
@@ -39,9 +38,9 @@ export interface UseClipboardOptions<Source> extends ConfigurableNavigator {
 }
 
 export interface UseClipboardReturn<Optional> {
-  isSupported: Ref<boolean>
-  text: ComputedRef<string>
-  copied: ComputedRef<boolean>
+  isSupported: ComputedRef<boolean>
+  text: Readonly<ShallowRef<string>>
+  copied: Readonly<ShallowRef<boolean>>
   copy: Optional extends true ? (text?: string) => Promise<void> : (text: string) => Promise<void>
 }
 
@@ -50,6 +49,8 @@ export interface UseClipboardReturn<Optional> {
  *
  * @see https://vueuse.org/useClipboard
  * @param options
+ *
+ * @__NO_SIDE_EFFECTS__
  */
 export function useClipboard(options?: UseClipboardOptions<undefined>): UseClipboardReturn<false>
 export function useClipboard(options: UseClipboardOptions<MaybeRefOrGetter<string>>): UseClipboardReturn<true>
@@ -66,29 +67,40 @@ export function useClipboard(options: UseClipboardOptions<MaybeRefOrGetter<strin
   const permissionRead = usePermission('clipboard-read')
   const permissionWrite = usePermission('clipboard-write')
   const isSupported = computed(() => isClipboardApiSupported.value || legacy)
-  const text = ref('')
-  const copied = ref(false)
-  const timeout = useTimeoutFn(() => copied.value = false, copiedDuring)
+  const text = shallowRef('')
+  const copied = shallowRef(false)
+  const timeout = useTimeoutFn(() => copied.value = false, copiedDuring, { immediate: false })
 
-  function updateText() {
-    if (isClipboardApiSupported.value && permissionRead.value !== 'denied') {
-      navigator!.clipboard.readText().then((value) => {
-        text.value = value
-      })
+  async function updateText() {
+    let useLegacy = !(isClipboardApiSupported.value && isAllowed(permissionRead.value))
+    if (!useLegacy) {
+      try {
+        text.value = await navigator!.clipboard.readText()
+      }
+      catch {
+        useLegacy = true
+      }
     }
-    else {
+    if (useLegacy) {
       text.value = legacyRead()
     }
   }
 
   if (isSupported.value && read)
-    useEventListener(['copy', 'cut'], updateText)
+    useEventListener(['copy', 'cut'], updateText, { passive: true })
 
   async function copy(value = toValue(source)) {
     if (isSupported.value && value != null) {
-      if (isClipboardApiSupported.value && permissionWrite.value !== 'denied')
-        await navigator!.clipboard.writeText(value)
-      else
+      let useLegacy = !(isClipboardApiSupported.value && isAllowed(permissionWrite.value))
+      if (!useLegacy) {
+        try {
+          await navigator!.clipboard.writeText(value)
+        }
+        catch {
+          useLegacy = true
+        }
+      }
+      if (useLegacy)
         legacyCopy(value)
 
       text.value = value
@@ -99,9 +111,10 @@ export function useClipboard(options: UseClipboardOptions<MaybeRefOrGetter<strin
 
   function legacyCopy(value: string) {
     const ta = document.createElement('textarea')
-    ta.value = value ?? ''
+    ta.value = value
     ta.style.position = 'absolute'
     ta.style.opacity = '0'
+    ta.setAttribute('readonly', '')
     document.body.appendChild(ta)
     ta.select()
     document.execCommand('copy')
@@ -112,10 +125,14 @@ export function useClipboard(options: UseClipboardOptions<MaybeRefOrGetter<strin
     return document?.getSelection?.()?.toString() ?? ''
   }
 
+  function isAllowed(status: PermissionState | undefined) {
+    return status === 'granted' || status === 'prompt'
+  }
+
   return {
     isSupported,
-    text: text as ComputedRef<string>,
-    copied: copied as ComputedRef<boolean>,
+    text: readonly(text),
+    copied: readonly(copied),
     copy,
   }
 }

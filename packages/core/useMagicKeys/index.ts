@@ -1,9 +1,8 @@
-import type { ComputedRef } from 'vue-demi'
-import { computed, reactive, ref } from 'vue-demi'
-import type { MaybeRefOrGetter } from '@vueuse/shared'
-import { noop, toValue } from '@vueuse/shared'
-import { useEventListener } from '../useEventListener'
+import type { ComputedRef, MaybeRefOrGetter } from 'vue'
+import { noop } from '@vueuse/shared'
+import { computed, reactive, shallowRef, toValue } from 'vue'
 import { defaultWindow } from '../_configurable'
+import { useEventListener } from '../useEventListener'
 import { DefaultMagicKeysAliasMap } from './aliasMap'
 
 export interface UseMagicKeysOptions<Reactive extends boolean> {
@@ -56,12 +55,12 @@ export interface MagicKeysInternal {
   current: Set<string>
 }
 
-export type UseMagicKeysReturn<Reactive extends boolean> =
-  Readonly<
-  Omit<Reactive extends true
-    ? Record<string, boolean>
-    : Record<string, ComputedRef<boolean>>, keyof MagicKeysInternal>
-  & MagicKeysInternal
+export type UseMagicKeysReturn<Reactive extends boolean>
+  = Readonly<
+    Record<
+      string,
+      Reactive extends true ? boolean : ComputedRef<boolean>
+    > & MagicKeysInternal
   >
 
 /**
@@ -69,9 +68,7 @@ export type UseMagicKeysReturn<Reactive extends boolean> =
  *
  * @see https://vueuse.org/useMagicKeys
  */
-export function useMagicKeys(options?: UseMagicKeysOptions<false>): UseMagicKeysReturn<false>
-export function useMagicKeys(options: UseMagicKeysOptions<true>): UseMagicKeysReturn<true>
-export function useMagicKeys(options: UseMagicKeysOptions<boolean> = {}): any {
+export function useMagicKeys<T extends boolean = false>(options: UseMagicKeysOptions<T> = {}): UseMagicKeysReturn<T> {
   const {
     reactive: useReactive = false,
     target = defaultWindow,
@@ -86,6 +83,11 @@ export function useMagicKeys(options: UseMagicKeysOptions<boolean> = {}): any {
   }
   const refs: Record<string, any> = useReactive ? reactive(obj) : obj
   const metaDeps = new Set<string>()
+  const depsMap = new Map<string, Set<string>>([
+    ['Meta', metaDeps],
+    ['Shift', new Set<string>()],
+    ['Alt', new Set<string>()],
+  ])
   const usedKeys = new Set<string>()
 
   function setRefs(key: string, value: boolean) {
@@ -103,10 +105,43 @@ export function useMagicKeys(options: UseMagicKeysOptions<boolean> = {}): any {
       setRefs(key, false)
   }
 
+  function updateDeps(value: boolean, e: KeyboardEvent, keys: string[]) {
+    if (!value || typeof e.getModifierState !== 'function')
+      return
+    for (const [modifier, depsSet] of depsMap) {
+      if (e.getModifierState(modifier)) {
+        keys.forEach(key => depsSet.add(key))
+        break
+      }
+    }
+  }
+
+  function clearDeps(value: boolean, key: string) {
+    if (value)
+      return
+    const depsMapKey = `${key[0].toUpperCase()}${key.slice(1)}`
+    const deps = depsMap.get(depsMapKey)
+    if (!(['shift', 'alt'].includes(key)) || !deps)
+      return
+
+    const depsArray = Array.from(deps)
+    const depsIndex = depsArray.indexOf(key)
+    depsArray.forEach((key, index) => {
+      if (index >= depsIndex) {
+        current.delete(key)
+        setRefs(key, false)
+      }
+    })
+    deps.clear()
+  }
+
   function updateRefs(e: KeyboardEvent, value: boolean) {
     const key = e.key?.toLowerCase()
     const code = e.code?.toLowerCase()
     const values = [code, key].filter(Boolean)
+
+    if (key === '')
+      return
 
     // current set
     if (key) {
@@ -121,6 +156,9 @@ export function useMagicKeys(options: UseMagicKeysOptions<boolean> = {}): any {
       setRefs(key, value)
     }
 
+    updateDeps(value, e, [...current, ...values])
+    clearDeps(value, key)
+
     // #1312
     // In macOS, keys won't trigger "keyup" event when Meta key is released
     // We track it's combination and release manually
@@ -131,9 +169,6 @@ export function useMagicKeys(options: UseMagicKeysOptions<boolean> = {}): any {
         setRefs(key, false)
       })
       metaDeps.clear()
-    }
-    else if (typeof e.getModifierState === 'function' && e.getModifierState('Meta') && value) {
-      [...current, ...values].forEach(key => metaDeps.add(key))
     }
   }
 
@@ -147,8 +182,8 @@ export function useMagicKeys(options: UseMagicKeysOptions<boolean> = {}): any {
   }, { passive })
 
   // #1350
-  useEventListener('blur', reset, { passive: true })
-  useEventListener('focus', reset, { passive: true })
+  useEventListener('blur', reset, { passive })
+  useEventListener('focus', reset, { passive })
 
   const proxy = new Proxy(
     refs,
@@ -165,10 +200,10 @@ export function useMagicKeys(options: UseMagicKeysOptions<boolean> = {}): any {
         if (!(prop in refs)) {
           if (/[+_-]/.test(prop)) {
             const keys = prop.split(/[+_-]/g).map(i => i.trim())
-            refs[prop] = computed(() => keys.every(key => toValue(proxy[key])))
+            refs[prop] = computed(() => keys.map(key => toValue(proxy[key])).every(Boolean))
           }
           else {
-            refs[prop] = ref(false)
+            refs[prop] = shallowRef(false)
           }
         }
         const r = Reflect.get(target, prop, rec)
@@ -177,7 +212,7 @@ export function useMagicKeys(options: UseMagicKeysOptions<boolean> = {}): any {
     },
   )
 
-  return proxy as any
+  return proxy as UseMagicKeysReturn<T>
 }
 
 export { DefaultMagicKeysAliasMap } from './aliasMap'

@@ -19,3 +19,9 @@ function setMessage() {
   message.value = 'message has set'
 }
 ```
+
+::: info
+You can reassign the entire object to trigger updates after making deep mutations to the inner value.
+
+[Learn more about shallow refs →](https://vuejs.org/api/reactivity-advanced#shallowref)
+:::

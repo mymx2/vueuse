@@ -1,5 +1,5 @@
-import { reactive } from 'vue-demi'
 import { describe, expect, it } from 'vitest'
+import { reactive } from 'vue'
 import { reactivePick } from '../reactivePick'
 
 describe('reactivePick', () => {
@@ -45,6 +45,7 @@ describe('reactivePick', () => {
       bar: 'bar2',
     })
   })
+
   it('should work with predicate', () => {
     const source = reactive({
       foo: 'foo',

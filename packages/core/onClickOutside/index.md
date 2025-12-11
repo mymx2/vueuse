@@ -8,55 +8,78 @@ Listen for clicks outside of an element. Useful for modal or dropdown.
 
 ## Usage
 
-```html {18}
+```vue
+<script setup lang="ts">
+import { onClickOutside } from '@vueuse/core'
+import { useTemplateRef } from 'vue'
+
+const target = useTemplateRef('target')
+
+onClickOutside(target, event => console.log(event))
+</script>
+
 <template>
   <div ref="target">
     Hello world
   </div>
-  <div>
-    Outside element
-  </div>
+  <div>Outside element</div>
 </template>
-
-<script>
-import { ref } from 'vue'
-import { onClickOutside } from '@vueuse/core'
-
-export default {
-  setup() {
-    const target = ref(null)
-
-    onClickOutside(target, (event) => console.log(event))
-
-    return { target }
-  }
-}
-</script>
 ```
 
-> This function uses [Event.composedPath()](https://developer.mozilla.org/en-US/docs/Web/API/Event/composedPath) which is NOT supported by IE 11, Edge 18 and below. If you are targeting these browsers, we recommend you to include [this code snippet](https://gist.github.com/sibbng/13e83b1dd1b733317ce0130ef07d4efd) on your project.
+If you need more control over triggering the handler, you can use the `controls` option.
+
+```ts
+const { cancel, trigger } = onClickOutside(
+  modalRef,
+  (event) => {
+    modal.value = false
+  },
+  { controls: true },
+)
+
+useEventListener('pointermove', (e) => {
+  cancel()
+  // or
+  trigger(e)
+})
+```
+
+If you want to ignore certain elements, you can use the `ignore` option. Provide the elements to ignore as an array of Refs or CSS Selectors.
+
+```ts
+const ignoreElRef = useTemplateRef('ignoreEl')
+const ignoreElSelector = '.ignore-el'
+
+onClickOutside(
+  target,
+  event => console.log(event),
+  { ignore: [ignoreElRef, ignoreElSelector] },
+)
+```
 
 ## Component Usage
 
-```html
-<OnClickOutside @trigger="count++" :options="{ ignore: [/* ... */] }">
-  <div>
-    Click Outside of Me
-  </div>
-</OnClickOutside>
+```vue
+<template>
+  <OnClickOutside :options="{ ignore: [/* ... */] }" @trigger="count++">
+    <div>
+      Click Outside of Me
+    </div>
+  </OnClickOutside>
+</template>
 ```
+
 ## Directive Usage
 
-```html
+```vue
 <script setup lang="ts">
-import { ref } from 'vue'
 import { vOnClickOutside } from '@vueuse/components'
+import { shallowRef } from 'vue'
 
-const modal = ref(false)
+const modal = shallowRef(false)
 function closeModal() {
   modal.value = false
 }
-
 </script>
 
 <template>
@@ -71,23 +94,22 @@ function closeModal() {
 
 You can also set the handler as an array to set the configuration items of the instruction.
 
-```html
-<script setup>
-import { ref } from 'vue'
+```vue
+<script setup lang="ts">
 import { vOnClickOutside } from '@vueuse/components'
+import { shallowRef, useTemplateRef } from 'vue'
 
-const modal = ref(false)
+const modal = shallowRef(false)
 
-const ignoreElRef = ref()
+const ignoreElRef = useTemplateRef('ignoreEl')
 
 const onClickOutsideHandler = [
   (ev) => {
     console.log(ev)
     modal.value = false
   },
-  { ignore: [ignoreElRef] }
+  { ignore: [ignoreElRef] },
 ]
-
 </script>
 
 <template>
@@ -103,5 +125,4 @@ const onClickOutsideHandler = [
     Hello World
   </div>
 </template>
-
 ```

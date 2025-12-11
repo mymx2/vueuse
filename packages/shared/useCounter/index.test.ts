@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { ref } from 'vue-demi'
-import { useCounter } from '.'
+import { shallowRef } from 'vue'
+import { useCounter } from './index'
 
 describe('useCounter', () => {
   it('should be defined', () => {
@@ -18,10 +18,16 @@ describe('useCounter', () => {
     inc(2)
     expect(count.value).toBe(3)
     expect(get()).toBe(3)
-    dec()
+    inc(-1)
     expect(count.value).toBe(2)
     expect(get()).toBe(2)
+    dec()
+    expect(count.value).toBe(1)
+    expect(get()).toBe(1)
     dec(5)
+    expect(count.value).toBe(-4)
+    expect(get()).toBe(-4)
+    dec(-1)
     expect(count.value).toBe(-3)
     expect(get()).toBe(-3)
     set(100)
@@ -39,7 +45,7 @@ describe('useCounter', () => {
   })
 
   it('should be update initial & counter', () => {
-    const initial = ref(0)
+    const initial = shallowRef(0)
     const { count, inc, dec, get, set, reset } = useCounter(initial)
 
     expect(count.value).toBe(0)
@@ -85,6 +91,12 @@ describe('useCounter', () => {
     expect(count.value).toBe(1)
     expect(get()).toBe(1)
     inc(20)
+    expect(count.value).toBe(15)
+    expect(get()).toBe(15)
+    inc(-20)
+    expect(count.value).toBe(-2)
+    expect(get()).toBe(-2)
+    dec(-20)
     expect(count.value).toBe(15)
     expect(get()).toBe(15)
     dec(2)

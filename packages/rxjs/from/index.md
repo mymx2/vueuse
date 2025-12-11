@@ -8,14 +8,16 @@ Wrappers around RxJS's [`from()`](https://rxjs.dev/api/index/function/from) and 
 
 ## Usage
 
-```ts
-import { ref } from 'vue'
+<!-- TODO: import rxjs error if enable twoslash -->
+
+```ts no-twoslash
 import { from, fromEvent, toObserver, useSubscription } from '@vueuse/rxjs'
 import { interval } from 'rxjs'
 import { map, mapTo, takeUntil, withLatestFrom } from 'rxjs/operators'
+import { shallowRef, useTemplateRef } from 'vue'
 
-const count = ref(0)
-const button = ref<HTMLButtonElement>(null)
+const count = shallowRef(0)
+const button = useTemplateRef('buttonRef')
 
 useSubscription(
   interval(1000)

@@ -12,6 +12,7 @@ Collection of essential Vue Composition Utilities
 <p align="center">
 <a href="https://www.npmjs.com/package/@vueuse/core" target="__blank"><img src="https://img.shields.io/npm/v/@vueuse/core?color=a1b858&label=" alt="NPM version"></a>
 <a href="https://www.npmjs.com/package/@vueuse/core" target="__blank"><img alt="NPM Downloads" src="https://img.shields.io/npm/dm/@vueuse/core?color=50a36f&label="></a>
+<a href="https://app.codecov.io/gh/vueuse/vueuse"><img alt="Codecov" src="https://img.shields.io/codecov/c/github/vueuse/vueuse?color=42b883&labelColor=354a5e"></a>
 <a href="https://vueuse.org" target="__blank"><img src="https://img.shields.io/static/v1?label=&message=docs%20%26%20demos&color=1e8a7a" alt="Docs & Demos"></a>
 <img alt="Function Count" src="https://vueuse.org/badge-function-count.svg">
 <br>
@@ -27,7 +28,6 @@ Collection of essential Vue Composition Utilities
 ## 🚀 Features
 
 - 🎪 [**Interactive docs & demos**](https://vueuse.org)
-- 🕶 **Seamless migration**: Works for **both** Vue 3 and 2
 - ⚡ **Fully tree shakeable**: Only take what you want, [bundle size](https://vueuse.org/export-size)
 - 🦾 **Type Strong**: Written in [TypeScript](https://www.typescriptlang.org/), with [TS Docs](https://github.com/microsoft/tsdoc)
 - 🔋 **SSR Friendly**
@@ -40,33 +40,28 @@ Collection of essential Vue Composition Utilities
 ```ts
 import { useLocalStorage, useMouse, usePreferredDark } from '@vueuse/core'
 
-export default {
-  setup() {
-    // tracks mouse position
-    const { x, y } = useMouse()
+const { x, y } = useMouse()
 
-    // if user prefers dark theme
-    const isDark = usePreferredDark()
+// if user prefers dark theme
+const isDark = usePreferredDark()
 
-    // persist state in localStorage
-    const store = useLocalStorage(
-      'my-storage',
-      {
-        name: 'Apple',
-        color: 'red',
-      },
-    )
-
-    return { x, y, isDark, store }
+// persist state in localStorage
+const store = useLocalStorage(
+  'my-storage',
+  {
+    name: 'Apple',
+    color: 'red',
   },
-}
+)
 ```
 
 Refer to [functions list](https://vueuse.org/functions) or [documentations](https://vueuse.org/) for more details.
 
 ## 📦 Install
 
-> 🎩 From v4.0, it works for Vue 2 & 3 **within a single package** by the power of [vue-demi](https://github.com/vueuse/vue-demi)!
+> From v14.0, VueUse requires Vue v3.5+
+> From v13.0, VueUse requires Vue v3.3+
+> From v12.0, VueUse no longer supports Vue 2. Please use v11.x for Vue 2 support.
 
 ```bash
 npm i @vueuse/core
@@ -74,20 +69,17 @@ npm i @vueuse/core
 
 [Add ons](https://vueuse.org/add-ons.html) | [Nuxt Module](https://vueuse.org/guide/index.html#nuxt)
 
-> From v6.0, VueUse requires `vue` >= v3.2 or `@vue/composition-api` >= v1.1
-
 ###### Demos
 
 - [Vite + Vue 3](https://github.com/vueuse/vueuse-vite-starter)
 - [Nuxt 3 + Vue 3](https://github.com/antfu/vitesse-nuxt3)
 - [Webpack + Vue 3](https://github.com/vueuse/vueuse-vue3-example)
-- [Nuxt 2 + Vue 2](https://github.com/antfu/vitesse-nuxt-bridge)
-- [Vue CLI + Vue 2](https://github.com/vueuse/vueuse-vue2-example)
 
 ### CDN
 
-```html
+```vue
 <script src="https://unpkg.com/@vueuse/shared"></script>
+
 <script src="https://unpkg.com/@vueuse/core"></script>
 ```
 
@@ -95,7 +87,7 @@ It will be exposed to global as `window.VueUse`
 
 ## 🪴 Project Activity
 
-![Alt](https://repobeats.axiom.co/api/embed/a406ba7461a6a087dbdb14d4395046c948d44c51.svg "Repobeats analytics image")
+![Alt](https://repobeats.axiom.co/api/embed/a406ba7461a6a087dbdb14d4395046c948d44c51.svg 'Repobeats analytics image')
 
 ## 🧱 Contribute
 

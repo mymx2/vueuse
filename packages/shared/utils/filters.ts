@@ -1,9 +1,10 @@
-import { readonly, ref } from 'vue-demi'
-import { toValue } from '../toValue'
+import type { MaybeRefOrGetter } from 'vue'
+import type { AnyFn, ArgumentsType, Awaited, Pausable, Promisify, TimerHandle } from './types'
+import { isRef, readonly, toValue } from 'vue'
+import { toRef } from '../toRef'
 import { noop } from './is'
-import type { AnyFn, ArgumentsType, Awaited, MaybeRefOrGetter, Pausable, Promisify } from './types'
 
-export type FunctionArgs<Args extends any[] = any[], Return = void> = (...args: Args) => Return
+export type FunctionArgs<Args extends any[] = any[], Return = unknown> = (...args: Args) => Return
 
 export interface FunctionWrapperOptions<Args extends any[] = any[], This = any> {
   fn: FunctionArgs<Args, This>
@@ -64,15 +65,17 @@ export const bypassFilter: EventFilter = (invoke) => {
  * Create an EventFilter that debounce the events
  */
 export function debounceFilter(ms: MaybeRefOrGetter<number>, options: DebounceFilterOptions = {}) {
-  let timer: ReturnType<typeof setTimeout> | undefined
-  let maxTimer: ReturnType<typeof setTimeout> | undefined | null
+  let timer: TimerHandle
+  let maxTimer: TimerHandle
   let lastRejector: AnyFn = noop
 
-  const _clearTimeout = (timer: ReturnType<typeof setTimeout>) => {
+  const _clearTimeout = (timer: TimerHandle) => {
     clearTimeout(timer)
     lastRejector()
     lastRejector = noop
   }
+
+  let lastInvoker: () => void
 
   const filter: EventFilter = (invoke) => {
     const duration = toValue(ms)
@@ -84,20 +87,21 @@ export function debounceFilter(ms: MaybeRefOrGetter<number>, options: DebounceFi
     if (duration <= 0 || (maxDuration !== undefined && maxDuration <= 0)) {
       if (maxTimer) {
         _clearTimeout(maxTimer)
-        maxTimer = null
+        maxTimer = undefined
       }
       return Promise.resolve(invoke())
     }
 
     return new Promise((resolve, reject) => {
       lastRejector = options.rejectOnCancel ? reject : resolve
+      lastInvoker = invoke
       // Create the maxTimer. Clears the regular timer on invoke
       if (maxDuration && !maxTimer) {
         maxTimer = setTimeout(() => {
           if (timer)
             _clearTimeout(timer)
-          maxTimer = null
-          resolve(invoke())
+          maxTimer = undefined
+          resolve(lastInvoker())
         }, maxDuration)
       }
 
@@ -105,7 +109,7 @@ export function debounceFilter(ms: MaybeRefOrGetter<number>, options: DebounceFi
       timer = setTimeout(() => {
         if (maxTimer)
           _clearTimeout(maxTimer)
-        maxTimer = null
+        maxTimer = undefined
         resolve(invoke())
       }, duration)
     })
@@ -114,22 +118,45 @@ export function debounceFilter(ms: MaybeRefOrGetter<number>, options: DebounceFi
   return filter
 }
 
+export interface ThrottleFilterOptions {
+  /**
+   * The maximum time allowed to be delayed before it's invoked.
+   */
+  delay: MaybeRefOrGetter<number>
+  /**
+   * Whether to invoke on the trailing edge of the timeout.
+   */
+  trailing?: boolean
+  /**
+   * Whether to invoke on the leading edge of the timeout.
+   */
+  leading?: boolean
+  /**
+   * Whether to reject the last call if it's been cancel.
+   */
+  rejectOnCancel?: boolean
+}
+
 // TODO v11: refactor the params to object
 /**
  * Create an EventFilter that throttle the events
- *
- * @param ms
- * @param [trailing]
- * @param [leading]
- * @param [rejectOnCancel]
  */
-export function throttleFilter(ms: MaybeRefOrGetter<number>, trailing = true, leading = true, rejectOnCancel = false) {
+export function throttleFilter(ms: MaybeRefOrGetter<number>, trailing?: boolean, leading?: boolean, rejectOnCancel?: boolean): EventFilter
+export function throttleFilter(options: ThrottleFilterOptions): EventFilter
+export function throttleFilter(...args: any[]) {
   let lastExec = 0
-  let timer: ReturnType<typeof setTimeout> | undefined
+  let timer: TimerHandle
   let isLeading = true
   let lastRejector: AnyFn = noop
   let lastValue: any
-
+  let ms: MaybeRefOrGetter<number>
+  let trailing: boolean
+  let leading: boolean
+  let rejectOnCancel: boolean
+  if (!isRef(args[0]) && typeof args[0] === 'object')
+    ({ delay: ms, trailing = true, leading = true, rejectOnCancel = false } = args[0])
+  else
+    [ms, trailing = true, leading = true, rejectOnCancel = false] = args
   const clear = () => {
     if (timer) {
       clearTimeout(timer)
@@ -152,10 +179,10 @@ export function throttleFilter(ms: MaybeRefOrGetter<number>, trailing = true, le
       lastExec = Date.now()
       return invoke()
     }
-
-    if (elapsed > duration && (leading || !isLeading)) {
+    if (elapsed > duration) {
       lastExec = Date.now()
-      invoke()
+      if (leading || !isLeading)
+        invoke()
     }
     else if (trailing) {
       lastValue = new Promise((resolve, reject) => {
@@ -179,14 +206,27 @@ export function throttleFilter(ms: MaybeRefOrGetter<number>, trailing = true, le
   return filter
 }
 
+export interface PausableFilterOptions {
+  /**
+   * The initial state
+   *
+   * @default 'active'
+   */
+  initialState?: 'active' | 'paused'
+}
+
 /**
  * EventFilter that gives extra controls to pause and resume the filter
  *
  * @param extendFilter  Extra filter to apply when the PausableFilter is active, default to none
- *
+ * @param options Options to configure the filter
  */
-export function pausableFilter(extendFilter: EventFilter = bypassFilter): Pausable & { eventFilter: EventFilter } {
-  const isActive = ref(true)
+export function pausableFilter(extendFilter: EventFilter = bypassFilter, options: PausableFilterOptions = {}): Pausable & { eventFilter: EventFilter } {
+  const {
+    initialState = 'active',
+  } = options
+
+  const isActive = toRef(initialState === 'active')
 
   function pause() {
     isActive.value = false

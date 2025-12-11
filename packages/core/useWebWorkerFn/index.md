@@ -10,7 +10,7 @@ Run expensive functions without blocking the UI, using a simple syntax that make
 
 ### Basic example
 
-```js
+```ts
 import { useWebWorkerFn } from '@vueuse/core'
 
 const { workerFn } = useWebWorkerFn(() => {
@@ -30,6 +30,22 @@ const { workerFn, workerStatus, workerTerminate } = useWebWorkerFn(
     dependencies: [
       'https://cdnjs.cloudflare.com/ajax/libs/date-fns/1.30.1/date_fns.js', // dateFns
     ],
+  },
+)
+```
+
+### With local dependencies
+
+```ts {9-9}
+import { useWebWorkerFn } from '@vueuse/core'
+
+const pow = (a: number) => a * a
+
+const { workerFn, workerStatus, workerTerminate } = useWebWorkerFn(
+  numbers => pow(numbers),
+  {
+    timeout: 50000,
+    localDependencies: [pow]
   },
 )
 ```

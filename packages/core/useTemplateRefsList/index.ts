@@ -1,13 +1,14 @@
-import type { Ref } from 'vue-demi'
-import { onBeforeUpdate, ref } from 'vue-demi'
+import type { Ref } from 'vue'
+import { ref as deepRef, onBeforeUpdate } from 'vue'
 
 export type TemplateRefsList<T> = T[] & {
-  set(el: Object | null): void
+  set: (el: object | null) => void
 }
 
+/* @__NO_SIDE_EFFECTS__ */
 export function useTemplateRefsList<T = Element>(): Readonly<Ref<Readonly<TemplateRefsList<T>>>> {
-  const refs = ref<unknown>([]) as Ref<TemplateRefsList<T>>
-  refs.value.set = (el: Object | null) => {
+  const refs = deepRef<unknown>([]) as Ref<TemplateRefsList<T>>
+  refs.value.set = (el: object | null) => {
     if (el)
       refs.value.push(el as T)
   }

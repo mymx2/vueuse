@@ -1,18 +1,37 @@
-import { defineComponent, h, reactive, ref } from 'vue-demi'
+import type { RenderableComponent, UseElementBoundingOptions, UseElementBoundingReturn } from '@vueuse/core'
+import type { Reactive, SlotsType } from 'vue'
 import { useElementBounding } from '@vueuse/core'
-import type { UseResizeObserverOptions } from '../useResizeObserver'
-import type { RenderableComponent } from '../types'
+import { defineComponent, h, reactive, shallowRef } from 'vue'
 
-export const UseElementBounding = /* #__PURE__ */ defineComponent<UseResizeObserverOptions & RenderableComponent>({
-  name: 'UseElementBounding',
-  props: ['box', 'as'] as unknown as undefined,
-  setup(props, { slots }) {
-    const target = ref()
-    const data = reactive(useElementBounding(target))
+export interface UseElementBoundingProps extends UseElementBoundingOptions, RenderableComponent {}
+interface UseElementBoundingSlots {
+  default: (data: Reactive<UseElementBoundingReturn>) => any
+}
+
+export const UseElementBounding = /* #__PURE__ */ defineComponent<
+  UseElementBoundingProps,
+  Record<string, never>,
+  string,
+  SlotsType<UseElementBoundingSlots>
+>(
+  (props, { slots }) => {
+    const target = shallowRef<HTMLElement>()
+    const data = reactive(useElementBounding(target, props))
 
     return () => {
       if (slots.default)
         return h(props.as || 'div', { ref: target }, slots.default(data))
     }
   },
-})
+  {
+    name: 'UseElementBounding',
+    props: [
+      'as',
+      'immediate',
+      'reset',
+      'updateTiming',
+      'windowResize',
+      'windowScroll',
+    ],
+  },
+)

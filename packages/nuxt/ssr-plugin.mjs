@@ -1,5 +1,5 @@
-import { setSSRHandler } from '@vueuse/core'
 import { defineNuxtPlugin, useCookie, useHead } from '#imports'
+import { setSSRHandler } from '@vueuse/core'
 
 setSSRHandler('getDefaultStorage', () => {
   const cookieMap = new Map()
@@ -15,7 +15,7 @@ setSSRHandler('getDefaultStorage', () => {
   }
 })
 
-if (process.server) {
+if (import.meta.server) {
   setSSRHandler('updateHTMLAttrs', (selector, attr, value) => {
     if (selector === 'html') {
       useHead({

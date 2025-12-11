@@ -1,8 +1,8 @@
-import type { ComputedRef } from 'vue-demi'
-import { computed } from 'vue-demi'
+import type { ComputedRef, MaybeRefOrGetter } from 'vue'
 import type { UseTimeoutFnOptions } from '../useTimeoutFn'
-import { useTimeoutFn } from '../useTimeoutFn'
 import type { Fn, Stoppable } from '../utils'
+import { computed } from 'vue'
+import { useTimeoutFn } from '../useTimeoutFn'
 import { noop } from '../utils'
 
 export interface UseTimeoutOptions<Controls extends boolean> extends UseTimeoutFnOptions {
@@ -18,6 +18,12 @@ export interface UseTimeoutOptions<Controls extends boolean> extends UseTimeoutF
   callback?: Fn
 }
 
+export type UseTimeoutReturn = ComputedRef<boolean> | { readonly ready: ComputedRef<boolean> } & Stoppable
+/**
+ * @deprecated use UseTimeoutReturn instead
+ */
+export type UseTimoutReturn = UseTimeoutReturn
+
 /**
  * Update value after a given time with controls.
  *
@@ -25,9 +31,9 @@ export interface UseTimeoutOptions<Controls extends boolean> extends UseTimeoutF
  * @param interval
  * @param options
  */
-export function useTimeout(interval?: number, options?: UseTimeoutOptions<false>): ComputedRef<boolean>
-export function useTimeout(interval: number, options: UseTimeoutOptions<true>): { ready: ComputedRef<boolean> } & Stoppable
-export function useTimeout(interval = 1000, options: UseTimeoutOptions<boolean> = {}) {
+export function useTimeout(interval?: MaybeRefOrGetter<number>, options?: UseTimeoutOptions<false>): ComputedRef<boolean>
+export function useTimeout(interval: MaybeRefOrGetter<number>, options: UseTimeoutOptions<true>): { ready: ComputedRef<boolean> } & Stoppable
+export function useTimeout(interval: MaybeRefOrGetter<number> = 1000, options: UseTimeoutOptions<boolean> = {}): UseTimeoutReturn {
   const {
     controls: exposeControls = false,
     callback,

@@ -8,10 +8,11 @@ Open file dialog with ease.
 
 ## Usage
 
-```ts
+```vue
+<script setup lang="ts">
 import { useFileDialog } from '@vueuse/core'
 
-const { files, open, reset, onChange } = useFileDialog({
+const { files, open, reset, onCancel, onChange } = useFileDialog({
   accept: 'image/*', // Set to accept only image files
   directory: true, // Select directories instead of files if set true
 })
@@ -19,10 +20,15 @@ const { files, open, reset, onChange } = useFileDialog({
 onChange((files) => {
   /** do something with files */
 })
-```
 
-```html
+onCancel(() => {
+  /** do something on cancel */
+})
+</script>
+
 <template>
-  <button type="button" @click="open">Choose file</button>
+  <button type="button" @click="open">
+    Choose file
+  </button>
 </template>
 ```

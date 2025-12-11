@@ -10,7 +10,7 @@ Reactive browser location
 
 ## Usage
 
-```js
+```ts
 import { useBrowserLocation } from '@vueuse/core'
 
 const location = useBrowserLocation()
@@ -18,8 +18,8 @@ const location = useBrowserLocation()
 
 ## Component Usage
 
-```html
-<UseBrowserLocation v-slot="{ location }">
+```vue
+<UseBrowserLocation v-slot="location">
   Browser Location: {{ location }}
 </UseBrowserLocation>
 ```

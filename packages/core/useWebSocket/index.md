@@ -8,7 +8,7 @@ Reactive [WebSocket](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket/
 
 ## Usage
 
-```js
+```ts
 import { useWebSocket } from '@vueuse/core'
 
 const { status, data, send, open, close } = useWebSocket('ws://websocketurl')
@@ -16,25 +16,31 @@ const { status, data, send, open, close } = useWebSocket('ws://websocketurl')
 
 See the [Type Declarations](#type-declarations) for more options.
 
-### Immediate
+### immediate
 
-Auto-connect (enabled by default).
+Enable by default.
 
-This will call `open()` automatically for you and you don't need to call it by yourself.
+Establish the connection immediately when the composable is called.
 
-If url is provided as a ref, this also controls whether a connection is re-established when its value is changed (or whether you need to call open() again for the change to take effect).
+### autoConnect
 
-### Auto-close
+Enable by default.
 
-Auto-close-connection (enabled by default).
+If a URL is provided as a ref, when the URL changes, it will automatically reconnect to the new URL.
+
+### autoClose
+
+Enable by default.
 
 This will call `close()` automatically when the `beforeunload` event is triggered or the associated effect scope is stopped.
 
-### Auto-reconnection
+### autoReconnect
 
 Reconnect on errors automatically (disabled by default).
 
-```js
+```ts
+import { useWebSocket } from '@vueuse/core'
+// ---cut---
 const { status, data, close } = useWebSocket('ws://websocketurl', {
   autoReconnect: true,
 })
@@ -42,7 +48,9 @@ const { status, data, close } = useWebSocket('ws://websocketurl', {
 
 Or with more controls over its behavior:
 
-```js
+```ts
+import { useWebSocket } from '@vueuse/core'
+// ---cut---
 const { status, data, close } = useWebSocket('ws://websocketurl', {
   autoReconnect: {
     retries: 3,
@@ -54,13 +62,41 @@ const { status, data, close } = useWebSocket('ws://websocketurl', {
 })
 ```
 
+You can also pass a function to `delay` to calculate the delay based on the number of retries. This is useful for implementing exponential backoff:
+
+```ts
+import { useWebSocket } from '@vueuse/core'
+// ---cut---
+const { status, data, close } = useWebSocket('ws://websocketurl', {
+  autoReconnect: {
+    retries: 5,
+    // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+    delay: retries => Math.min(1000 * 2 ** (retries - 1), 30000),
+  },
+})
+```
+
+```ts
+import { useWebSocket } from '@vueuse/core'
+// ---cut---
+const { status, data, close } = useWebSocket('ws://websocketurl', {
+  autoReconnect: {
+    retries: 5,
+    // Linear backoff: 1s, 2s, 3s, 4s, 5s
+    delay: retries => retries * 1000,
+  },
+})
+```
+
 Explicitly calling `close()` won't trigger the auto reconnection.
 
-### Heartbeat
+### heartbeat
 
 It's common practice to send a small message (heartbeat) for every given time passed to keep the connection active. In this function we provide a convenient helper to do it:
 
-```js
+```ts
+import { useWebSocket } from '@vueuse/core'
+// ---cut---
 const { status, data, close } = useWebSocket('ws://websocketurl', {
   heartbeat: true,
 })
@@ -68,7 +104,9 @@ const { status, data, close } = useWebSocket('ws://websocketurl', {
 
 Or with more controls:
 
-```js
+```ts
+import { useWebSocket } from '@vueuse/core'
+// ---cut---
 const { status, data, close } = useWebSocket('ws://websocketurl', {
   heartbeat: {
     message: 'ping',
@@ -80,11 +118,11 @@ const { status, data, close } = useWebSocket('ws://websocketurl', {
 
 ### Sub-protocols
 
-List of one or more subprotocols to use, in this case soap and wamp.
+List of one or more subprotocols to use, in this case SOAP and WAMP.
 
-```js
+```ts
 import { useWebSocket } from '@vueuse/core'
-
+// ---cut---
 const { status, data, send, open, close } = useWebSocket('ws://websocketurl', {
   protocols: ['soap'], // ['soap', 'wamp']
 })

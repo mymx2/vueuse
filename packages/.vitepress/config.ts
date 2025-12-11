@@ -1,6 +1,14 @@
+import { resolve } from 'node:path'
+import { transformerTwoslash } from '@shikijs/vitepress-twoslash'
+import { createFileSystemTypesCache } from '@shikijs/vitepress-twoslash/cache-fs'
+import { withPwa } from '@vite-pwa/vitepress'
 import { defineConfig } from 'vitepress'
-import { addonCategoryNames, categoryNames, coreCategoryNames, metadata } from '../metadata/metadata'
 import { currentVersion, versions } from '../../meta/versions'
+import { addonCategoryNames, categoryNames, coreCategoryNames, metadata } from '../metadata/metadata'
+import { PWAVirtual } from './plugins/pwa-virtual'
+import { transformHead } from './transformHead'
+import { FILE_IMPORTS } from './twoslash'
+import viteConfig from './vite.config'
 
 const Guide = [
   { text: 'Get Started', link: '/guide/' },
@@ -39,6 +47,11 @@ const Learn = [
   { text: 'Official Vue Certification', link: 'https://certification.vuejs.org/?utm_source=vueuse&utm_medium=website&utm_campaign=affiliate&utm_content=guide&banner_type=text&friend=VUEUSE' },
 ]
 
+const Resources = [
+  { text: 'Team & Contributors', link: '/team' },
+  { text: 'Learn', items: Learn },
+]
+
 const DefaultSideBar = [
   { text: 'Guide', items: Guide },
   { text: 'Core Functions', items: CoreCategories },
@@ -49,7 +62,7 @@ const DefaultSideBar = [
 
 const FunctionsSideBar = getFunctionsSideBar()
 
-export default defineConfig({
+export default withPwa(defineConfig({
   title: 'VueUse',
   description: 'Collection of essential Vue Composition Utilities',
   lang: 'en-US',
@@ -60,6 +73,20 @@ export default defineConfig({
       light: 'vitesse-light',
       dark: 'vitesse-dark',
     },
+    codeTransformers: [
+      transformerTwoslash({
+        twoslashOptions: {
+          handbookOptions: {
+            noErrors: true,
+          },
+        },
+        includesMap: new Map([['imports', `// ---cut-start---\n${FILE_IMPORTS}\n// ---cut-end---`]]),
+        typesCache: createFileSystemTypesCache({
+          dir: resolve(__dirname, 'cache', 'twoslash'),
+        }),
+      }),
+    ],
+    languages: ['js', 'ts'],
   },
 
   themeConfig: {
@@ -83,7 +110,7 @@ export default defineConfig({
     socialLinks: [
       { icon: 'github', link: 'https://github.com/vueuse/vueuse' },
       { icon: 'discord', link: 'https://chat.antfu.me' },
-      { icon: 'twitter', link: 'https://twitter.com/vueuse' },
+      { icon: 'bluesky', link: 'https://bsky.app/profile/vueuse.org' },
     ],
 
     nav: [
@@ -91,7 +118,6 @@ export default defineConfig({
         text: 'Guide',
         items: [
           { text: 'Guide', items: Guide },
-          { text: 'Learn', items: Learn },
           { text: 'Links', items: Links },
         ],
       },
@@ -110,12 +136,12 @@ export default defineConfig({
         ],
       },
       {
-        text: 'Add-ons',
-        link: '/add-ons',
+        text: 'Resources',
+        items: Resources,
       },
       {
         text: 'Playground',
-        link: 'https://play.vueuse.org',
+        link: `https://playground.vueuse.org?vueuse=${currentVersion.replace('v', '')}`,
       },
       {
         text: currentVersion,
@@ -162,23 +188,93 @@ export default defineConfig({
   },
   head: [
     ['meta', { name: 'theme-color', content: '#ffffff' }],
-    ['link', { rel: 'icon', href: '/favicon-32x32.png', type: 'image/png' }],
-    ['link', { rel: 'icon', href: '/favicon.svg', type: 'image/svg+xml' }],
+    ['link', { rel: 'icon', href: '/favicon.ico', sizes: '48x48' }],
+    ['link', { rel: 'icon', href: '/favicon.svg', sizes: 'any', type: 'image/svg+xml' }],
     ['meta', { name: 'author', content: 'Anthony Fu' }],
     ['meta', { property: 'og:title', content: 'VueUse' }],
-    ['meta', { property: 'og:image', content: 'https://vueuse.org/og.png' }],
     ['meta', { property: 'og:description', content: 'Collection of essential Vue Composition Utilities' }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
     ['meta', { name: 'twitter:creator', content: '@antfu7' }],
-    ['meta', { name: 'twitter:image', content: 'https://vueuse.org/og.png' }],
     ['meta', { name: 'viewport', content: 'width=device-width, initial-scale=1.0, viewport-fit=cover' }],
+    ['link', { rel: 'apple-touch-icon', href: '/apple-touch-icon.png', sizes: '180x180' }],
 
     ['link', { rel: 'dns-prefetch', href: 'https://fonts.gstatic.com' }],
     ['link', { rel: 'preconnect', crossorigin: 'anonymous', href: 'https://fonts.gstatic.com' }],
     ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap' }],
     ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Fira+Code&display=swap' }],
   ],
-})
+
+  transformHead,
+  pwa: {
+    outDir: resolve(__dirname, 'dist'),
+    registerType: 'autoUpdate',
+    strategies: 'injectManifest',
+    srcDir: '.vitepress/',
+    filename: 'sw.ts',
+    injectRegister: 'inline',
+    manifest: {
+      id: '/',
+      name: 'VueUse',
+      short_name: 'VueUse',
+      description: 'Collection of Essential Vue Composition Utilities',
+      theme_color: '#ffffff',
+      start_url: '/',
+      lang: 'en-US',
+      dir: 'ltr',
+      orientation: 'natural',
+      display: 'standalone',
+      display_override: ['window-controls-overlay'],
+      categories: ['development', 'developer tools'],
+      icons: [
+        {
+          src: '/pwa-64x64.png',
+          sizes: '64x64',
+          type: 'image/png',
+        },
+        {
+          src: '/pwa-192x192.png',
+          sizes: '192x192',
+          type: 'image/png',
+        },
+        {
+          src: '/pwa-512x512.png',
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'any',
+        },
+        {
+          src: '/maskable-icon.png',
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'maskable',
+        },
+      ],
+      edge_side_panel: {
+        preferred_width: 480,
+      },
+      screenshots: [{
+        src: 'og.png',
+        sizes: '1281x641',
+        type: 'image/png',
+        label: `Screenshot of VueUse`,
+      }],
+    },
+    injectManifest: {
+      globPatterns: ['**/*.{css,js,html,svg,png,ico,txt,woff2}', 'hashmap.json'],
+      globIgnores: ['og-*.png'],
+      // vue chunk ~5.4MB: won't be precached, and won't work when offline
+      maximumFileSizeToCacheInBytes: 6_000_000,
+      // for local build + preview
+      // enableWorkboxModulesLogs: true,
+      // minify: false,
+      buildPlugins: {
+        vite: [PWAVirtual()],
+      },
+    },
+  },
+
+  vite: viteConfig,
+}))
 
 function getFunctionsSideBar() {
   const links = []

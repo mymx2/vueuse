@@ -1,6 +1,6 @@
-import { computed } from 'vue-demi'
-import { useColorMode } from '../useColorMode'
 import type { BasicColorSchema, UseColorModeOptions } from '../useColorMode'
+import { computed } from 'vue'
+import { useColorMode } from '../useColorMode'
 
 export interface UseDarkOptions extends Omit<UseColorModeOptions<BasicColorSchema>, 'modes' | 'onChanged'> {
   /**
@@ -52,13 +52,15 @@ export function useDark(options: UseDarkOptions = {}) {
     },
   })
 
+  const system = computed(() => mode.system.value)
+
   const isDark = computed<boolean>({
     get() {
       return mode.value === 'dark'
     },
     set(v) {
       const modeVal = v ? 'dark' : 'light'
-      if (mode.system.value === modeVal)
+      if (system.value === modeVal)
         mode.value = 'auto'
       else
         mode.value = modeVal
@@ -67,3 +69,5 @@ export function useDark(options: UseDarkOptions = {}) {
 
   return isDark
 }
+
+export type UseDarkReturn = ReturnType<typeof useDark>

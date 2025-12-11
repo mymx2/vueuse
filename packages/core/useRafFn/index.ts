@@ -1,7 +1,8 @@
-import { readonly, ref } from 'vue-demi'
 import type { Pausable } from '@vueuse/shared'
-import { tryOnScopeDispose } from '@vueuse/shared'
+import type { MaybeRefOrGetter } from 'vue'
 import type { ConfigurableWindow } from '../_configurable'
+import { tryOnScopeDispose } from '@vueuse/shared'
+import { computed, readonly, shallowRef, toValue } from 'vue'
 import { defaultWindow } from '../_configurable'
 
 export interface UseRafFnCallbackArguments {
@@ -29,7 +30,13 @@ export interface UseRafFnOptions extends ConfigurableWindow {
    *
    * @default undefined
    */
-  fpsLimit?: number
+  fpsLimit?: MaybeRefOrGetter<number>
+  /**
+   * After the requestAnimationFrame loop executed once, it will be automatically stopped.
+   *
+   * @default false
+   */
+  once?: boolean
 }
 
 /**
@@ -44,10 +51,13 @@ export function useRafFn(fn: (args: UseRafFnCallbackArguments) => void, options:
     immediate = true,
     fpsLimit = undefined,
     window = defaultWindow,
+    once = false,
   } = options
 
-  const isActive = ref(false)
-  const intervalLimit = fpsLimit ? 1000 / fpsLimit : null
+  const isActive = shallowRef(false)
+  const intervalLimit = computed(() => {
+    return fpsLimit ? 1000 / toValue(fpsLimit) : null
+  })
   let previousFrameTimestamp = 0
   let rafId: null | number = null
 
@@ -55,22 +65,30 @@ export function useRafFn(fn: (args: UseRafFnCallbackArguments) => void, options:
     if (!isActive.value || !window)
       return
 
-    const delta = timestamp - (previousFrameTimestamp || timestamp)
+    if (!previousFrameTimestamp)
+      previousFrameTimestamp = timestamp
 
-    if (intervalLimit && delta < intervalLimit) {
+    const delta = timestamp - previousFrameTimestamp
+
+    if (intervalLimit.value && delta < intervalLimit.value) {
       rafId = window.requestAnimationFrame(loop)
       return
     }
 
-    fn({ delta, timestamp })
-
     previousFrameTimestamp = timestamp
+    fn({ delta, timestamp })
+    if (once) {
+      isActive.value = false
+      rafId = null
+      return
+    }
     rafId = window.requestAnimationFrame(loop)
   }
 
   function resume() {
     if (!isActive.value && window) {
       isActive.value = true
+      previousFrameTimestamp = 0
       rafId = window.requestAnimationFrame(loop)
     }
   }

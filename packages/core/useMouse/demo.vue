@@ -1,18 +1,32 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
-import { stringify } from '@vueuse/docs-utils'
-import { useMouse, useParentElement } from '@vueuse/core'
 import type { UseMouseEventExtractor } from '@vueuse/core'
+import { reactify, useMouse, useParentElement } from '@vueuse/core'
+import { reactive } from 'vue'
+import YAML from 'yaml'
+
+const stringify = reactify(
+  (input: any) => YAML.stringify(input, (k, v) => {
+    if (typeof v === 'function') {
+      return undefined
+    }
+    return v
+  }, {
+    singleQuote: true,
+    flowCollectionPadding: false,
+  }),
+)
 
 const parentEl = useParentElement()
 
 const mouseDefault = reactive(useMouse())
 const textDefault = stringify(mouseDefault)
 
-const extractor: UseMouseEventExtractor = event => (event instanceof Touch
-  ? null
-  : [event.offsetX, event.offsetY]
-)
+const extractor: UseMouseEventExtractor = (event) => {
+  if (event instanceof MouseEvent)
+    return [event.offsetX, event.offsetY]
+  else
+    return null
+}
 
 const mouseWithExtractor = reactive(useMouse({ target: parentEl, type: extractor }))
 const textWithExtractor = stringify(mouseWithExtractor)

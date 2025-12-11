@@ -1,7 +1,5 @@
-import type { ComputedRef } from 'vue-demi'
-import { computed } from 'vue-demi'
-import type { MaybeRefOrGetter } from '@vueuse/shared'
-import { toValue } from '@vueuse/shared'
+import type { ComputedRef, MaybeRefOrGetter } from 'vue'
+import { computed, toValue } from 'vue'
 
 /**
  * Accuracy of handling numerical values.
@@ -15,7 +13,7 @@ function accurateMultiply(value: number, power: number): number {
 
   if (value > 0 && valueStr.includes('.')) {
     const decimalPlaces = valueStr.split('.')[1].length
-    const multiplier = 10 ** decimalPlaces ?? 1
+    const multiplier = 10 ** decimalPlaces
 
     return (value * multiplier * power) / multiplier
   }
@@ -37,6 +35,8 @@ export interface UsePrecisionOptions {
  * Reactively set the precision of a number.
  *
  * @see https://vueuse.org/usePrecision
+ *
+ * @__NO_SIDE_EFFECTS__
  */
 export function usePrecision(
   value: MaybeRefOrGetter<number>,

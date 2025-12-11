@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import type { Ref } from 'vue'
-import { computed, toRef } from 'vue'
+import { useEventListener, useMounted, useUrlSearchParams } from '@vueuse/core'
 import Fuse from 'fuse.js'
-import { useEventListener, useUrlSearchParams } from '@vueuse/core'
+import { computed } from 'vue'
 import { categoryNames, functions } from '../../../../packages/metadata/metadata'
 
 const coreCategories = categoryNames.filter(i => !i.startsWith('@'))
@@ -13,14 +12,38 @@ useEventListener('click', (e) => {
   // @ts-expect-error cast
   if (e.target.tagName === 'A')
     window.dispatchEvent(new Event('hashchange'))
-})
+}, { passive: true })
 
-const query = useUrlSearchParams('hash-params', { removeFalsyValues: true })
-const search = toRef(query, 'search') as Ref<string | null>
-const category = toRef(query, 'category') as Ref<string | null>
-const hasComponent = toRef(query, 'component') as any as Ref<boolean>
-const hasDirective = toRef(query, 'directive') as any as Ref<boolean>
-const sortMethod = toRef(query, 'sort') as Ref<'category' | 'name' | 'updated' | null>
+const isMounted = useMounted()
+
+const query = useUrlSearchParams<{
+  search: string | null
+  category: string | null
+  component: boolean
+  directive: boolean
+  sort: 'category' | 'name' | 'updated' | null
+}>('hash-params', { removeFalsyValues: true })
+
+const search = computed<string | null>({
+  get: () => isMounted.value ? query.search : null,
+  set: val => query.search = val,
+})
+const category = computed<string | null>({
+  get: () => isMounted.value ? query.category : null,
+  set: val => query.category = val,
+})
+const hasComponent = computed<boolean>({
+  get: () => isMounted.value ? query.component : false,
+  set: val => query.component = val,
+})
+const hasDirective = computed<boolean>({
+  get: () => isMounted.value ? query.directive : false,
+  set: val => query.directive = val,
+})
+const sortMethod = computed<'category' | 'name' | 'updated' | null>({
+  get: () => isMounted.value ? query.sort : null,
+  set: val => query.sort = val,
+})
 
 const showCategory = computed(() => !search.value && (!sortMethod.value || sortMethod.value === 'category'))
 
@@ -53,13 +76,14 @@ const result = computed(() => {
   }
 })
 
-const hasFilters = computed(() => Boolean(search.value || category.value || hasComponent.value || sortMethod.value))
+const hasFilters = computed(() => Boolean(search.value || category.value || hasComponent.value || sortMethod.value || hasDirective.value))
 
 function resetFilters() {
   sortMethod.value = null
   category.value = null
   hasComponent.value = false
   search.value = null
+  hasDirective.value = false
 }
 
 function toggleCategory(cate: string) {
@@ -141,7 +165,7 @@ function toggleSort(method: string) {
     <input v-model="search" class="w-full" type="text" role="search" placeholder="Search...">
   </div>
   <div h="1px" bg="$vp-c-divider" m="b-4" />
-  <div flex="~ col" gap="2" class="relative" p="t-5">
+  <div flex="~ col gap-3" class="relative" p="t-5">
     <div v-if="hasFilters" class="transition mb-2 opacity-60 absolute -top-3 right-0 z-10">
       <button class="select-button flex gap-1 items-center !px-2 !py-1" @click="resetFilters()">
         <i i-carbon-filter-remove />

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { useFocus } from '@vueuse/core'
+import { useTemplateRef } from 'vue'
 
-const text = ref()
-const input = ref()
-const button = ref()
+const text = useTemplateRef('text')
+const input = useTemplateRef('input')
+const button = useTemplateRef('button')
 
 const { focused: paragraphFocus } = useFocus(text)
 const { focused: inputFocus } = useFocus(input, { initialValue: true })
@@ -49,7 +49,7 @@ const { focused: buttonFocus } = useFocus(button)
 
 <style scoped>
 .demo-el:focus {
-  opacity: .7;
+  opacity: 0.7;
   box-shadow: 0 0 2px 1px var(--vp-c-brand);
 }
 </style>

@@ -8,35 +8,48 @@ Reports changes to the dimensions of an Element's content or the border-box
 
 ## Usage
 
-```html {16-20}
+```vue
+<script setup lang="ts">
+import { useResizeObserver } from '@vueuse/core'
+import { ref, useTemplateRef } from 'vue'
+
+const el = useTemplateRef('el')
+const text = ref('')
+
+useResizeObserver(el, (entries) => {
+  const entry = entries[0]
+  const { width, height } = entry.contentRect
+  text.value = `width: ${width}, height: ${height}`
+})
+</script>
+
 <template>
   <div ref="el">
-    {{text}}
+    {{ text }}
   </div>
 </template>
+```
 
-<script>
-import { ref } from 'vue'
-import { useResizeObserver } from '@vueuse/core'
+## Directive Usage
 
-export default {
-  setup() {
-    const el = ref(null)
-    const text = ref('')
+```vue
+<script setup lang="ts">
+import { vResizeObserver } from '@vueuse/components'
 
-    useResizeObserver(el, (entries) => {
-      const entry = entries[0]
-      const { width, height } = entry.contentRect
-      text.value = `width: ${width}, height: ${height}`
-    })
+const text = ref('')
 
-    return {
-      el,
-      text,
-    }
-  }
+function onResizeObserver(entries) {
+  const [entry] = entries
+  const { width, height } = entry.contentRect
+  text.value = `width: ${width}, height: ${height}`
 }
 </script>
+
+<template>
+  <div v-resize-observer="onResizeObserver">
+    {{ text }}
+  </div>
+</template>
 ```
 
 [ResizeObserver MDN](https://developer.mozilla.org/en-US/docs/Web/API/ResizeObserver)

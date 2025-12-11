@@ -8,51 +8,43 @@ Detects that a target element's visibility.
 
 ## Usage
 
-```html
-<div ref="target">
-  <h1>Hello world</h1>
-</div>
-```
-
-```js
-import { ref } from 'vue'
+```vue
+<script setup lang="ts">
 import { useIntersectionObserver } from '@vueuse/core'
+import { shallowRef, useTemplateRef } from 'vue'
 
-export default {
-  setup() {
-    const target = ref(null)
-    const targetIsVisible = ref(false)
+const target = useTemplateRef('target')
+const targetIsVisible = shallowRef(false)
 
-    const { stop } = useIntersectionObserver(
-      target,
-      ([{ isIntersecting }], observerElement) => {
-        targetIsVisible.value = isIntersecting
-      },
-    )
-
-    return {
-      target,
-      targetIsVisible,
-    }
+const { stop } = useIntersectionObserver(
+  target,
+  ([entry], observerElement) => {
+    targetIsVisible.value = entry?.isIntersecting || false
   },
-}
+)
+</script>
+
+<template>
+  <div ref="target">
+    <h1>Hello world</h1>
+  </div>
+</template>
 ```
 
 ## Directive Usage
 
-```html
+```vue
 <script setup lang="ts">
-import { ref } from 'vue'
 import { vIntersectionObserver } from '@vueuse/components'
+import { shallowRef, useTemplateRef } from 'vue'
 
-const root = ref(null)
+const root = useTemplateRef('root')
 
-const isVisible = ref(false)
+const isVisible = shallowRef(false)
 
-function onIntersectionObserver([{ isIntersecting }]: IntersectionObserverEntry[]) {
-  isVisible.value = isIntersecting
+function onIntersectionObserver([entry]: IntersectionObserverEntry[]) {
+  isVisible.value = entry?.isIntersecting || false
 }
-
 </script>
 
 <template>
@@ -76,6 +68,5 @@ function onIntersectionObserver([{ isIntersecting }]: IntersectionObserverEntry[
   </div>
 </template>
 ```
-
 
 [IntersectionObserver MDN](https://developer.mozilla.org/en-US/docs/Web/API/IntersectionObserver/IntersectionObserver)

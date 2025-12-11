@@ -1,10 +1,11 @@
-import { debounceFilter, promiseTimeout } from '@vueuse/shared'
-import { defineComponent, isVue3, nextTick, ref, toRaw } from 'vue-demi'
+import { debounceFilter } from '@vueuse/shared'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { ref as deepRef, defineComponent, nextTick, toRaw } from 'vue'
 import { mount, nextTwoTick, useSetup } from '../../.test'
-import { StorageSerializers, customStorageEventName, useStorage } from '.'
+import { customStorageEventName, StorageSerializers, useStorage } from './index'
 
 const KEY = 'custom-key'
+const ANOTHER_KEY = 'another-key'
 
 vi.mock('../ssr-handlers', () => ({
   getSSRHandler: vi.fn().mockImplementationOnce((_, cb) => () => cb()).mockImplementationOnce(() => () => {
@@ -26,9 +27,6 @@ describe('useStorage', () => {
   beforeEach(() => {
     localStorage.clear()
     storageState.clear()
-    storageMock.setItem.mockClear()
-    storageMock.getItem.mockClear()
-    storageMock.removeItem.mockClear()
   })
 
   it('export module', () => {
@@ -124,6 +122,15 @@ describe('useStorage', () => {
     expect(storedValue).toBeFalsy()
   })
 
+  it('undefined value with existing store', () => {
+    const initial = { foo: 'bar' }
+    storage.setItem(KEY, JSON.stringify(initial))
+    const store = useStorage(KEY, undefined, storage, { serializer: StorageSerializers.object })
+
+    expect.soft(store.value).toStrictEqual(initial)
+    expect.soft(storage.getItem(KEY)).toBe(JSON.stringify(initial))
+  })
+
   it('remove value', async () => {
     storage.setItem(KEY, 'random')
 
@@ -203,22 +210,20 @@ describe('useStorage', () => {
 
     expect(store.value).toEqual(new Map<number, string | number>([[1, 'a'], [2, 2]]))
 
-    if (isVue3) {
-      store.value.set(1, 'c')
-      await nextTwoTick()
+    store.value.set(1, 'c')
+    await nextTwoTick()
 
-      expect(storage.setItem).toBeCalledWith(KEY, '[[1,"c"],[2,2]]')
+    expect(storage.setItem).toBeCalledWith(KEY, '[[1,"c"],[2,2]]')
 
-      store.value.set(2, 3)
-      await nextTwoTick()
+    store.value.set(2, 3)
+    await nextTwoTick()
 
-      expect(storage.setItem).toBeCalledWith(KEY, '[[1,"c"],[2,3]]')
+    expect(storage.setItem).toBeCalledWith(KEY, '[[1,"c"],[2,3]]')
 
-      store.value = null
-      await nextTwoTick()
+    store.value = null
+    await nextTwoTick()
 
-      expect(storage.removeItem).toBeCalledWith(KEY)
-    }
+    expect(storage.removeItem).toBeCalledWith(KEY)
   })
 
   it('set', async () => {
@@ -230,28 +235,26 @@ describe('useStorage', () => {
 
     expect(store.value).toEqual(new Set<string | number>([1, '2']))
 
-    if (isVue3) {
-      store.value.add('1')
-      await nextTwoTick()
+    store.value.add('1')
+    await nextTwoTick()
 
-      expect(storage.setItem).toBeCalledWith(KEY, '[1,"2","1"]')
+    expect(storage.setItem).toBeCalledWith(KEY, '[1,"2","1"]')
 
-      store.value.delete(1)
-      await nextTwoTick()
+    store.value.delete(1)
+    await nextTwoTick()
 
-      expect(storage.setItem).toBeCalledWith(KEY, '["2","1"]')
+    expect(storage.setItem).toBeCalledWith(KEY, '["2","1"]')
 
-      store.value = null
-      await nextTwoTick()
+    store.value = null
+    await nextTwoTick()
 
-      expect(storage.removeItem).toBeCalledWith(KEY)
-    }
+    expect(storage.removeItem).toBeCalledWith(KEY)
   })
 
   it('pass ref as initialValue', async () => {
     expect(storage.getItem(KEY)).toEqual(undefined)
 
-    const init = ref({
+    const init = deepRef({
       name: 'a',
       data: 123,
     })
@@ -296,17 +299,15 @@ describe('useStorage', () => {
       }
     })
 
-    await nextTwoTick()
-    await promiseTimeout(300)
     // @ts-expect-error mock
     storage.setItem.mockClear()
 
     vm.ref.name = 'b'
-    await nextTwoTick()
     expect(storage.setItem).not.toBeCalled()
-    await promiseTimeout(300)
 
-    expect(storage.setItem).toBeCalledWith(KEY, '{"name":"b","data":123}')
+    await vi.waitFor(() => {
+      expect(storage.setItem).toBeCalledWith(KEY, '{"name":"b","data":123}')
+    }, { interval: 10 })
 
     // @ts-expect-error mock
     storage.setItem.mockClear()
@@ -314,9 +315,9 @@ describe('useStorage', () => {
     vm.ref.data = 321
     await nextTwoTick()
     expect(storage.setItem).not.toBeCalled()
-    await promiseTimeout(300)
-
-    expect(storage.setItem).toBeCalledWith(KEY, '{"name":"b","data":321}')
+    await vi.waitFor(() => {
+      expect(storage.setItem).toBeCalledWith(KEY, '{"name":"b","data":321}')
+    }, { interval: 10 })
   })
 
   it('custom serializer', async () => {
@@ -464,6 +465,21 @@ describe('useStorage', () => {
     expect(call[0].detail.key).toEqual(KEY)
     expect(call[0].detail.oldValue).toEqual('0')
     expect(call[0].detail.newValue).toEqual('1')
+
+    window.addEventListener(customStorageEventName, eventFn, { once: true })
+
+    data0.value = null
+    await nextTwoTick()
+
+    expect(data0.value).toBe(0)
+    expect(data1.value).toBe(0)
+    expect(eventFn).toHaveBeenCalledTimes(2)
+    const call2 = eventFn.mock.calls[1] as [CustomEvent]
+
+    expect(call2[0].detail.storageArea).toEqual(storage)
+    expect(call2[0].detail.key).toEqual(KEY)
+    expect(call2[0].detail.oldValue).toEqual('1')
+    expect(call2[0].detail.newValue).toEqual(null)
   })
 
   it('handle error', () => {
@@ -491,6 +507,9 @@ describe('useStorage', () => {
           basicRef,
         }
       },
+      render() {
+        return null
+      },
     }))
 
     await nextTick()
@@ -511,5 +530,81 @@ describe('useStorage', () => {
     storage.removeItem(KEY)
     const objectRef = useStorage(KEY, value, storage)
     expect(objectRef.value).toEqual(value)
+  })
+
+  it('syncs properly within the same document', async () => {
+    const state1 = useStorage(KEY, 0, storage)
+    const state2 = useStorage(KEY, 0, storage)
+
+    state1.value = 1
+    await nextTick()
+    expect(state2.value).toBe(1)
+  })
+
+  it('syncs properly within the same document (custom storages)', async () => {
+    const customStorage = {
+      getItem: storage.getItem,
+      setItem: storage.setItem,
+      removeItem: storage.removeItem,
+    }
+    const state1 = useStorage(KEY, 0, customStorage)
+    const state2 = useStorage(KEY, 0, customStorage)
+
+    state1.value = 1
+    await nextTick()
+    expect(state2.value).toBe(1)
+  })
+
+  it('updates on key change when thew new storage value is presented', async () => {
+    storage.setItem(ANOTHER_KEY, '1')
+    const key = deepRef(KEY)
+    const data = useStorage(key, 0, storage)
+
+    data.value = 2
+    await nextTick()
+    key.value = ANOTHER_KEY
+    await nextTick()
+    expect(data.value).toBe(1)
+    expect(storage.getItem(KEY)).toBe('2')
+    expect(storage.getItem(ANOTHER_KEY)).toBe('1')
+
+    key.value = KEY
+    data.value = 3
+    await nextTick()
+    expect(storage.getItem(KEY)).toBe('2')
+    expect(storage.getItem(ANOTHER_KEY)).toBe('1')
+  })
+
+  it('changes to defaults on key change when the new storage value is undefined', async () => {
+    const key = deepRef(KEY)
+    const data = useStorage(key, 0, storage)
+
+    data.value = 1
+    key.value = ANOTHER_KEY
+    await nextTick()
+    expect(data.value).toBe(1)
+    expect(storage.getItem(KEY)).toBe('0')
+    expect(storage.getItem(ANOTHER_KEY)).toBe('1')
+
+    data.value = 2
+    await nextTick()
+    key.value = KEY
+    await nextTick()
+    expect(data.value).toBe(0)
+    expect(storage.getItem(KEY)).toBe('0')
+    expect(storage.getItem(ANOTHER_KEY)).toBe('2')
+  })
+
+  it('listens to new storage value changes after key change', async () => {
+    const key = deepRef(KEY)
+    const data = useStorage(key, 0, localStorage)
+
+    key.value = ANOTHER_KEY
+    await nextTick()
+    expect(data.value).toBe(0)
+
+    window.dispatchEvent(new StorageEvent('storage', { storageArea: localStorage, key: ANOTHER_KEY, newValue: '1' }))
+    window.dispatchEvent(new StorageEvent('storage', { storageArea: localStorage, key: KEY, newValue: '2' }))
+    expect(data.value).toBe(1)
   })
 })

@@ -44,21 +44,15 @@ source.qux = false
 
 #### Selectively passing props to child
 
-```html
-<script setup>
+```vue
+<script setup lang="ts">
 import { reactivePick } from '@vueuse/core'
 
-const props = defineProps({
-  value: {
-    default: 'value',
-  },
-  color: {
-    type: String,
-  },
-  font: {
-    type: String,
-  }
-})
+const props = defineProps<{
+  value: string
+  color?: string
+  font?: string
+}>()
 
 const childProps = reactivePick(props, 'color', 'font')
 </script>
@@ -76,8 +70,8 @@ const childProps = reactivePick(props, 'color', 'font')
 Instead of doing this
 
 ```ts
-import { reactive } from 'vue'
 import { useElementBounding } from '@vueuse/core'
+import { reactive } from 'vue'
 
 const { height, width } = useElementBounding() // object of refs
 const size = reactive({ height, width })

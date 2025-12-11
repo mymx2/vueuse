@@ -1,8 +1,8 @@
-import { promiseTimeout, timestamp } from '@vueuse/shared'
-import type { ComputedRef } from 'vue-demi'
-import { computed, ref } from 'vue-demi'
+import type { ComputedRef } from 'vue'
+import { timestamp } from '@vueuse/shared'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useTimeAgo } from '.'
+import { computed, shallowRef } from 'vue'
+import { useTimeAgo } from './index'
 
 type TimeUnit = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'
 
@@ -27,7 +27,7 @@ function getNeededTimeChange(type: TimeUnit, count: number, adjustSecond?: numbe
 
 describe('useTimeAgo', () => {
   let baseTime: number
-  const changeValue = ref(0)
+  const changeValue = shallowRef(0)
   let changeTime: ComputedRef<number>
 
   function reset() {
@@ -47,17 +47,16 @@ describe('useTimeAgo', () => {
   })
 
   it('control now', async () => {
-    vi.useRealTimers()
     const { resume, pause, timeAgo } = useTimeAgo(baseTime, { controls: true, showSecond: true, updateInterval: 500 })
-    await promiseTimeout(400)
-    expect(timeAgo.value).toBe('0 second ago')
+    await vi.advanceTimersByTimeAsync(400)
+    expect(timeAgo.value).toContain('0 second')
 
     pause()
-    await promiseTimeout(700)
-    expect(timeAgo.value).toBe('0 second ago')
+    await vi.advanceTimersByTimeAsync(700)
+    expect(timeAgo.value).toContain('0 second')
 
     resume()
-    await promiseTimeout(1000)
+    await vi.advanceTimersByTimeAsync(1000)
     expect(timeAgo.value).toBe('2 seconds ago')
   })
 
@@ -80,6 +79,7 @@ describe('useTimeAgo', () => {
     function testSecond(isFuture: boolean) {
       const text = isFuture ? 'future' : 'past'
       const nextTime = getNeededTimeChange('minute', 1, -1) * (isFuture ? 1 : -1)
+
       it(`${text}: less than 1 minute`, () => {
         changeValue.value = nextTime
         expect(useTimeAgo(changeTime).value).toBe('just now')

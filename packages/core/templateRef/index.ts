@@ -1,16 +1,20 @@
-import type { Component, Ref } from 'vue-demi'
-import { customRef, getCurrentInstance, onUpdated } from 'vue-demi'
+import type { Component, Ref } from 'vue'
 import { tryOnMounted } from '@vueuse/shared'
+import { customRef, getCurrentInstance, onUpdated } from 'vue'
 
 /**
+ * @deprecated Use Vue's built-in `useTemplateRef` instead.
+ *
  * Shorthand for binding ref to template element.
  *
  * @see https://vueuse.org/templateRef
  * @param key
  * @param initialValue
+ *
+ * @__NO_SIDE_EFFECTS__
  */
-export function templateRef<T extends HTMLElement | SVGElement | Component | null>(
-  key: string,
+export function templateRef<T extends HTMLElement | SVGElement | Component | null, Keys extends string = string>(
+  key: Keys,
   initialValue: T | null = null,
 ): Readonly<Ref<T>> {
   const instance = getCurrentInstance()

@@ -14,7 +14,7 @@ Reactive dark mode with auto data persistence.
 
 ## Basic Usage
 
-```js
+```ts
 import { useDark, useToggle } from '@vueuse/core'
 
 const isDark = useDark()
@@ -33,10 +33,14 @@ By default, it uses [Tailwind CSS favored dark mode](https://tailwindcss.com/doc
 
 ```html
 <!--light-->
-<html> ... </html>
+<html>
+  ...
+</html>
 
 <!--dark-->
-<html class="dark"> ... </html>
+<html class="dark">
+  ...
+</html>
 ```
 
 Still, you can also customize it to make it work with most CSS frameworks.
@@ -44,6 +48,8 @@ Still, you can also customize it to make it work with most CSS frameworks.
 For example:
 
 ```ts
+import { useDark } from '@vueuse/core'
+// ---cut---
 const isDark = useDark({
   selector: 'body',
   attribute: 'color-scheme',
@@ -57,20 +63,26 @@ will work like
 ```html
 <!--light-->
 <html>
-  <body color-scheme="light"> ... </body>
+  <body color-scheme="light">
+    ...
+  </body>
 </html>
 
 <!--dark-->
 <html>
-  <body color-scheme="dark"> ... </body>
+  <body color-scheme="dark">
+    ...
+  </body>
 </html>
 ```
 
 If the configuration above still does not fit your needs, you can use the`onChanged` option to take full control over how you handle updates.
 
 ```ts
+import { useDark } from '@vueuse/core'
+// ---cut---
 const isDark = useDark({
-  onChanged(dark: boolean) {
+  onChanged(dark) {
     // update the dom, call the API or something
   },
 })
@@ -78,10 +90,12 @@ const isDark = useDark({
 
 ## Component Usage
 
-```html
-<UseDark v-slot="{ isDark, toggleDark }">
-  <button @click="toggleDark()">
-    Is Dark: {{ isDark }}
-  </button>
-</UseDark>
+```vue
+<template>
+  <UseDark v-slot="{ isDark, toggleDark }">
+    <button @click="toggleDark()">
+      Is Dark: {{ isDark }}
+    </button>
+  </UseDark>
+</template>
 ```

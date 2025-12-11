@@ -8,7 +8,7 @@ Reactive [Battery Status API](https://developer.mozilla.org/en-US/docs/Web/API/B
 
 ## Usage
 
-```js
+```ts
 import { useBattery } from '@vueuse/core'
 
 const { charging, chargingTime, dischargingTime, level } = useBattery()
@@ -30,10 +30,12 @@ Our applications normally are not empathetic to battery level, we can make a few
 - Disable some background workers that are not critical.
 - Limit network calls and reduce CPU/Memory consumption.
 
-
 ## Component Usage
-```html
-<UseBattery v-slot="{ charging }">
-  Is Charging: {{ charging }}
-</UseBattery>
+
+```vue
+<template>
+  <UseBattery v-slot="{ charging }">
+    Is Charging: {{ charging }}
+  </UseBattery>
+</template>
 ```

@@ -1,14 +1,13 @@
 // ported from https://www.reddit.com/r/vuejs/comments/jksizl/speech_recognition_as_a_vue_3_hook
 // by https://github.com/wobsoriano
 
-import type { MaybeRefOrGetter } from '@vueuse/shared'
-import { toRef, toValue, tryOnScopeDispose } from '@vueuse/shared'
-import type { Ref } from 'vue-demi'
-import { ref, shallowRef, watch } from 'vue-demi'
-import { useSupported } from '../useSupported'
+import type { MaybeRefOrGetter } from 'vue'
 import type { ConfigurableWindow } from '../_configurable'
-import { defaultWindow } from '../_configurable'
 import type { SpeechRecognition, SpeechRecognitionErrorEvent } from './types'
+import { toRef, tryOnScopeDispose } from '@vueuse/shared'
+import { shallowRef, toValue, watch } from 'vue'
+import { defaultWindow } from '../_configurable'
+import { useSupported } from '../useSupported'
 
 export interface UseSpeechRecognitionOptions extends ConfigurableWindow {
   /**
@@ -29,6 +28,13 @@ export interface UseSpeechRecognitionOptions extends ConfigurableWindow {
    * @default 'en-US'
    */
   lang?: MaybeRefOrGetter<string>
+  /**
+   * A number representing the maximum returned alternatives for each result.
+   *
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/SpeechRecognition/maxAlternatives
+   * @default 1
+   */
+  maxAlternatives?: number
 }
 
 /**
@@ -42,18 +48,17 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
   const {
     interimResults = true,
     continuous = true,
+    maxAlternatives = 1,
     window = defaultWindow,
   } = options
 
   const lang = toRef(options.lang || 'en-US')
-  const isListening = ref(false)
-  const isFinal = ref(false)
-  const result = ref('')
-  const error = shallowRef(undefined) as Ref<SpeechRecognitionErrorEvent | undefined>
+  const isListening = shallowRef(false)
+  const isFinal = shallowRef(false)
+  const result = shallowRef('')
+  const error = shallowRef<SpeechRecognitionErrorEvent | Error | undefined>(undefined)
 
-  const toggle = (value = !isListening.value) => {
-    isListening.value = value
-  }
+  let recognition: SpeechRecognition | undefined
 
   const start = () => {
     isListening.value = true
@@ -63,10 +68,17 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
     isListening.value = false
   }
 
+  const toggle = (value = !isListening.value) => {
+    if (value) {
+      start()
+    }
+    else {
+      stop()
+    }
+  }
+
   const SpeechRecognition = window && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
   const isSupported = useSupported(() => SpeechRecognition)
-
-  let recognition: SpeechRecognition | undefined
 
   if (isSupported.value) {
     recognition = new SpeechRecognition() as SpeechRecognition
@@ -74,8 +86,10 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
     recognition.continuous = continuous
     recognition.interimResults = interimResults
     recognition.lang = toValue(lang)
+    recognition.maxAlternatives = maxAlternatives
 
     recognition.onstart = () => {
+      isListening.value = true
       isFinal.value = false
     }
 
@@ -85,14 +99,10 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
     })
 
     recognition.onresult = (event) => {
-      const transcript = Array.from(event.results)
-        .map((result) => {
-          isFinal.value = result.isFinal
-          return result[0]
-        })
-        .map(result => result.transcript)
-        .join('')
+      const currentResult = event.results[event.resultIndex]
+      const { transcript } = currentResult[0]
 
+      isFinal.value = currentResult.isFinal
       result.value = transcript
       error.value = undefined
     }
@@ -106,16 +116,26 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}) 
       recognition!.lang = toValue(lang)
     }
 
-    watch(isListening, () => {
-      if (isListening.value)
-        recognition!.start()
-      else
-        recognition!.stop()
+    watch(isListening, (newValue, oldValue) => {
+      if (newValue === oldValue)
+        return
+
+      try {
+        if (newValue) {
+          recognition!.start()
+        }
+        else {
+          recognition!.stop()
+        }
+      }
+      catch (err) {
+        error.value = err as unknown as Error
+      }
     })
   }
 
   tryOnScopeDispose(() => {
-    isListening.value = false
+    stop()
   })
 
   return {

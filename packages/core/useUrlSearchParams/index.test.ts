@@ -1,6 +1,6 @@
-import { isVue3, nextTick } from 'vue-demi'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { useUrlSearchParams } from '.'
+import { nextTick } from 'vue'
+import { useUrlSearchParams } from './index'
 
 describe('useUrlSearchParams', () => {
   const baseURL = 'https://vueuse.org'
@@ -10,13 +10,22 @@ describe('useUrlSearchParams', () => {
     writable: true,
   })
 
+  let mockHistory: string[] = ['']
+  let mockCurrentHistoryIndex = 0
   const mockReplaceState = vi.fn()
+  const mockPushState = vi.fn((_state, _title, url: string) => {
+    mockHistory.push(url)
+    mockCurrentHistoryIndex++
+  })
 
   beforeEach(() => {
     vi.clearAllMocks()
+    mockHistory = ['']
+    mockCurrentHistoryIndex = 0
     window.location.search = ''
     window.location.hash = ''
     window.history.replaceState = mockReplaceState
+    window.history.pushState = mockPushState
   })
 
   const mockPopstate = (search: string, hash: string) => {
@@ -29,6 +38,37 @@ describe('useUrlSearchParams', () => {
         hash,
       },
     }))
+  }
+
+  const mockBack = async (search: string, hash: string) => {
+    window.location.search = search
+    window.location.hash = hash
+    window.dispatchEvent(new PopStateEvent('popstate', {
+      state: {
+        ...window.location,
+        search,
+        hash,
+      },
+    }))
+
+    await nextTick()
+    mockHistory.pop()
+    mockCurrentHistoryIndex -= 2
+  }
+
+  const mockForward = async (search: string, hash: string) => {
+    window.location.search = search
+    window.location.hash = hash
+    window.dispatchEvent(new PopStateEvent('popstate', {
+      state: {
+        ...window.location,
+        search,
+        hash,
+      },
+    }))
+
+    await nextTick()
+    mockHistory.pop()
   }
 
   ([
@@ -123,61 +163,80 @@ describe('useUrlSearchParams', () => {
         expect(params.foo).toBeUndefined()
       })
 
-      if (isVue3) {
-        it('update browser location on params change', async () => {
-          const params = useUrlSearchParams(mode)
+      it('update browser location on params change', async () => {
+        const params = useUrlSearchParams(mode)
 
-          params.foo = 'bar'
-          await nextTick()
-          switch (mode) {
-            case 'history':
-              expect(window.history.replaceState).toBeCalledWith(null, '', '/?foo=bar')
-              break
-            case 'hash':
-              expect(window.history.replaceState).toBeCalledWith(null, '', '/#?foo=bar')
-              break
-            case 'hash-params':
-              expect(window.history.replaceState).toBeCalledWith(null, '', '/#foo=bar')
-              break
-          }
+        params.foo = 'bar'
+        await nextTick()
+        switch (mode) {
+          case 'history':
+            expect(window.history.replaceState).toBeCalledWith(null, '', '/?foo=bar')
+            break
+          case 'hash':
+            expect(window.history.replaceState).toBeCalledWith(null, '', '/#?foo=bar')
+            break
+          case 'hash-params':
+            expect(window.history.replaceState).toBeCalledWith(null, '', '/#foo=bar')
+            break
+        }
 
-          if (mode === 'hash')
-            window.location.hash = '#?foo=bar'
+        if (mode === 'hash')
+          window.location.hash = '#?foo=bar'
 
-          delete params.foo
-          await nextTick()
-          switch (mode) {
-            case 'history':
-              expect(window.history.replaceState).toBeCalledWith(null, '', '/')
-              break
-            case 'hash':
-              expect(window.history.replaceState).toBeCalledWith(null, '', '/#')
-              break
-            case 'hash-params':
-              expect(window.history.replaceState).toBeCalledWith(null, '', '/')
-              break
-          }
-        })
+        delete params.foo
+        await nextTick()
+        switch (mode) {
+          case 'history':
+            expect(window.history.replaceState).toBeCalledWith(null, '', '/')
+            break
+          case 'hash':
+            expect(window.history.replaceState).toBeCalledWith(null, '', '/#')
+            break
+          case 'hash-params':
+            expect(window.history.replaceState).toBeCalledWith(null, '', '/')
+            break
+        }
+      })
 
-        it('array url search param', async () => {
-          const params = useUrlSearchParams(mode)
-          expect(params.foo).toBeUndefined()
-          params.foo = ['bar1', 'bar2']
+      it('array url search param', async () => {
+        const params = useUrlSearchParams(mode)
+        expect(params.foo).toBeUndefined()
+        params.foo = ['bar1', 'bar2']
 
-          await nextTick()
-          switch (mode) {
-            case 'history':
-              expect(window.history.replaceState).toBeCalledWith(null, '', '/?foo=bar1&foo=bar2')
-              break
-            case 'hash':
-              expect(window.history.replaceState).toBeCalledWith(null, '', '/#?foo=bar1&foo=bar2')
-              break
-            case 'hash-params':
-              expect(window.history.replaceState).toBeCalledWith(null, '', '/#foo=bar1&foo=bar2')
-              break
-          }
-        })
-      }
+        await nextTick()
+        switch (mode) {
+          case 'history':
+            expect(window.history.replaceState).toBeCalledWith(null, '', '/?foo=bar1&foo=bar2')
+            break
+          case 'hash':
+            expect(window.history.replaceState).toBeCalledWith(null, '', '/#?foo=bar1&foo=bar2')
+            break
+          case 'hash-params':
+            expect(window.history.replaceState).toBeCalledWith(null, '', '/#foo=bar1&foo=bar2')
+            break
+        }
+      })
+
+      it('changes write mode', async () => {
+        const params = useUrlSearchParams(mode, { writeMode: 'push' })
+
+        params.foo = 'bar'
+        await nextTick()
+        switch (mode) {
+          case 'history':
+            expect(window.history.pushState).toBeCalledWith(null, '', '/?foo=bar')
+            expect(window.history.replaceState).not.toBeCalled()
+            break
+          case 'hash':
+            expect(window.history.pushState).toBeCalledWith(null, '', '/#?foo=bar')
+            expect(window.history.replaceState).not.toBeCalled()
+            break
+          case 'hash-params':
+            expect(window.history.pushState).toBeCalledWith(null, '', '/#foo=bar')
+            expect(window.history.replaceState).not.toBeCalled()
+            break
+        }
+      })
 
       it('generic url search params', () => {
         interface CustomUrlParams extends Record<string, any> {
@@ -199,12 +258,119 @@ describe('useUrlSearchParams', () => {
           initialValue: {
             foo: 'bar',
             bar: 'foo',
-          } as { foo: string | null; bar: string | boolean },
+          } as { foo: string | null, bar: string | boolean },
         })
         params.foo = null
         params.bar = false
         await nextTick()
         expect(params).toEqual({ foo: null, bar: false })
+      })
+
+      it('strips equal sign for empty params use customer stringify function', async () => {
+        const params = useUrlSearchParams(mode, { stringify: params => params.toString().replace(/=(&|$)/g, '$1') })
+        params.foo = ''
+        params.bar = ''
+        await nextTick()
+        switch (mode) {
+          case 'history':
+            expect(window.history.replaceState).toBeCalledWith(null, '', '/?foo&bar')
+            break
+          case 'hash':
+            expect(window.history.replaceState).toBeCalledWith(null, '', '/#?foo&bar')
+            break
+          case 'hash-params':
+            expect(window.history.replaceState).toBeCalledWith(null, '', '/#foo&bar')
+            break
+        }
+      })
+
+      it('should push history state when value is updated', async () => {
+        const params = useUrlSearchParams(mode, { writeMode: 'push' })
+        expect(params.foo).toBeUndefined()
+        expect(params.bar).toBeUndefined()
+
+        params.foo = 'first'
+        await nextTick()
+        params.bar = 'second'
+        await nextTick()
+        switch (mode) {
+          case 'history':
+            expect(mockHistory).toEqual(['', '/?foo=first', '/?foo=first&bar=second'])
+            expect(mockCurrentHistoryIndex).toBe(2)
+            break
+          case 'hash':
+            expect(mockHistory).toEqual(['', '/#?foo=first', '/#?foo=first&bar=second'])
+            expect(mockCurrentHistoryIndex).toBe(2)
+            break
+          case 'hash-params':
+            expect(mockHistory).toEqual(['', '/#foo=first', '/#foo=first&bar=second'])
+            expect(mockCurrentHistoryIndex).toBe(2)
+            break
+        }
+
+        switch (mode) {
+          case 'hash':
+            mockBack('', '#/test/?foo=first')
+            break
+          case 'hash-params':
+            mockBack('', '#foo=first')
+            break
+          case 'history':
+            mockBack('?foo=first', '')
+        }
+        await nextTick()
+        switch (mode) {
+          case 'history':
+            expect(mockHistory).toEqual(['', '/?foo=first', '/?foo=first&bar=second'])
+            expect(mockCurrentHistoryIndex).toBe(1)
+            expect(params.foo).toBe('first')
+            expect(params.bar).toBeUndefined()
+            break
+          case 'hash':
+            expect(mockHistory).toEqual(['', '/#?foo=first', '/#?foo=first&bar=second'])
+            expect(mockCurrentHistoryIndex).toBe(1)
+            expect(params.foo).toBe('first')
+            expect(params.bar).toBeUndefined()
+            break
+          case 'hash-params':
+            expect(mockHistory).toEqual(['', '/#foo=first', '/#foo=first&bar=second'])
+            expect(mockCurrentHistoryIndex).toBe(1)
+            expect(params.foo).toBe('first')
+            expect(params.bar).toBeUndefined()
+            break
+        }
+
+        switch (mode) {
+          case 'hash':
+            mockForward('', '#/test/?foo=first&bar=second')
+            break
+          case 'hash-params':
+            mockForward('', '#foo=first&bar=second')
+            break
+          case 'history':
+            mockForward('?foo=first&bar=second', '')
+        }
+        await nextTick()
+        switch (mode) {
+          case 'history':
+            expect(mockHistory).toEqual(['', '/?foo=first', '/?foo=first&bar=second'])
+            expect(mockCurrentHistoryIndex).toBe(2)
+            expect(params.foo).toBe('first')
+            expect(params.bar).toBe('second')
+            break
+          case 'hash':
+            expect(mockHistory).toEqual(['', '/#?foo=first', '/#?foo=first&bar=second'])
+            expect(mockCurrentHistoryIndex).toBe(2)
+            expect(params.foo).toBe('first')
+            expect(params.bar).toBe('second')
+            break
+          case 'hash-params':
+            expect(mockHistory).toEqual(['', '/#foo=first', '/#foo=first&bar=second'])
+            expect(mockCurrentHistoryIndex).toBe(2)
+            expect(params.foo).toBe('first')
+            expect(params.bar).toBe('second')
+            break
+        }
       })
     })
   })

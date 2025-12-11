@@ -1,7 +1,7 @@
-/* this implementation is original ported from https://github.com/streamich/react-use by Vadim Dalecky */
-import { useEventListener } from '../useEventListener'
 import type { ConfigurableDocument } from '../_configurable'
 import { defaultDocument } from '../_configurable'
+/* this implementation is original ported from https://github.com/streamich/react-use by Vadim Dalecky */
+import { useEventListener } from '../useEventListener'
 
 function isFocusedElementEditable() {
   const { activeElement, body } = document
@@ -34,15 +34,11 @@ function isTypedCharValid({
     return false
 
   // 0...9
-  if (keyCode >= 48 && keyCode <= 57)
+  if ((keyCode >= 48 && keyCode <= 57) || (keyCode >= 96 && keyCode <= 105))
     return true
 
   // A...Z
   if (keyCode >= 65 && keyCode <= 90)
-    return true
-
-  // a...z
-  if (keyCode >= 97 && keyCode <= 122)
     return true
 
   // All other keys.
@@ -60,9 +56,9 @@ export function onStartTyping(callback: (event: KeyboardEvent) => void, options:
   const { document = defaultDocument } = options
 
   const keydown = (event: KeyboardEvent) => {
-    !isFocusedElementEditable()
-      && isTypedCharValid(event)
-      && callback(event)
+    if (!isFocusedElementEditable() && isTypedCharValid(event)) {
+      callback(event)
+    }
   }
 
   if (document)

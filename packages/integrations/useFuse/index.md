@@ -9,7 +9,7 @@ Easily implement fuzzy search using a composable with [Fuse.js](https://github.c
 From the Fuse.js website:
 
 > What is fuzzy searching?
-> 
+>
 > Generally speaking, fuzzy searching (more formally known as approximate string matching) is the technique of finding strings that are approximately equal to a given pattern (rather than exactly).
 
 ## Install Fuse.js as a peer dependency
@@ -17,7 +17,7 @@ From the Fuse.js website:
 ### NPM
 
 ```bash
-npm install fuse.js
+npm install fuse.js@^7
 ```
 
 ### Yarn
@@ -29,8 +29,8 @@ yarn add fuse.js
 ## Usage
 
 ```ts
-import { ref } from 'vue'
 import { useFuse } from '@vueuse/integrations/useFuse'
+import { shallowRef } from 'vue'
 
 const data = [
   'John Smith',
@@ -40,7 +40,7 @@ const data = [
   'Peter Brown',
 ]
 
-const input = ref('Jhon D')
+const input = shallowRef('Jhon D')
 
 const { results } = useFuse(input, data)
 

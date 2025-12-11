@@ -1,6 +1,6 @@
-import { ref } from 'vue-demi'
 import { describe, expect, it } from 'vitest'
-import { useCycleList } from '.'
+import { ref as deepRef } from 'vue'
+import { useCycleList } from './index'
 
 describe('useCycleList', () => {
   it('should work with array', () => {
@@ -31,9 +31,9 @@ describe('useCycleList', () => {
   })
 
   it('should work with ref', () => {
-    const list = ref(['foo', 'bar', 'fooBar'])
+    const list = deepRef(['foo', 'bar', 'fooBar'])
 
-    const { state, next, prev, index } = useCycleList(list)
+    const { state, next, prev, index, go } = useCycleList(list)
 
     expect(state.value).toBe('foo')
     expect(index.value).toBe(0)
@@ -57,11 +57,21 @@ describe('useCycleList', () => {
 
     expect(state.value).toBe('foo')
     expect(index.value).toBe(0)
+
+    go(1)
+
+    expect(state.value).toBe('bar')
+    expect(index.value).toBe(1)
+
+    go(-1)
+
+    expect(state.value).toBe('fooBar')
+    expect(index.value).toBe(2)
   })
 
   describe('when list empty', () => {
     it('returns the correctly data', () => {
-      const list = ref(['foo', 'bar', 'fooBar'])
+      const list = deepRef(['foo', 'bar', 'fooBar'])
 
       const { state, index } = useCycleList(list)
 

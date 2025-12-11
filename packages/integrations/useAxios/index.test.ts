@@ -1,11 +1,11 @@
 import type { RawAxiosRequestConfig } from 'axios'
+import type { UseAxiosOptions, UseAxiosOptionsBase, UseAxiosOptionsWithInitialData } from './index'
 import axios from 'axios'
-import { describe, expect, it, vi } from 'vitest'
-import { isBelowNode18 } from '../../.test'
-import { useAxios } from '.'
+import { describe, expect, expectTypeOf, it, vi } from 'vitest'
+import { nextTick } from 'vue'
+import { useAxios } from './index'
 
-// The tests does not run properly below node 18
-describe.skipIf(isBelowNode18)('useAxios', () => {
+describe('useAxios', () => {
   const url = 'https://jsonplaceholder.typicode.com/todos/1'
   const config: RawAxiosRequestConfig = {
     method: 'GET',
@@ -15,6 +15,7 @@ describe.skipIf(isBelowNode18)('useAxios', () => {
   })
   const options = { immediate: false }
   const path = '/todos/1'
+
   it('params: url', async () => {
     const { isFinished, data, then } = useAxios(url)
     expect(isFinished.value).toBeFalsy()
@@ -297,11 +298,11 @@ describe.skipIf(isBelowNode18)('useAxios', () => {
     const { isLoading, execute } = useAxios(url, config, { ...options, onError })
 
     execute().catch(() => {})
-    await new Promise(resolve => setTimeout(resolve, 0))
+    await nextTick()
     expect(isLoading.value).toBeTruthy()
 
     execute().catch(() => {})
-    await new Promise(resolve => setTimeout(resolve, 0))
+    await nextTick()
     expect(isLoading.value).toBeTruthy()
 
     await execute().catch(() => {})
@@ -334,7 +335,7 @@ describe.skipIf(isBelowNode18)('useAxios', () => {
     const onError = vi.fn()
     const { execute, error, isLoading, isFinished } = useAxios(url, config, { ...options, onError })
     expect(isLoading.value).toBeFalsy()
-    await execute('https://jsonplaceholder.typicode.com/todos/2/3')
+    await execute('https://jsonplaceholder.typicode.com/todos/1/wrong-url')
       .catch(() => {})
     expect(onError).toHaveBeenCalledWith(error.value)
     expect(isFinished.value).toBeTruthy()
@@ -344,6 +345,10 @@ describe.skipIf(isBelowNode18)('useAxios', () => {
   it('should use initialData', async () => {
     const { data } = useAxios(url, config, { ...options, initialData: { value: 1 } })
     expect(data.value).toEqual({ value: 1 })
+  })
+
+  it('should not crash when options is undefined', async () => {
+    await useAxios(url, config, undefined)
   })
 
   it('should reset data when execute', async () => {
@@ -359,11 +364,11 @@ describe.skipIf(isBelowNode18)('useAxios', () => {
       body: 'body',
       userId: 2,
     }
-    const { data, execute } = useAxios<ResType>(url, config, { ...options, initialData, resetOnExecute: true })
+    const { data, execute } = useAxios<ResType>(url, config, instance, { ...options, initialData, resetOnExecute: true })
     expect(data.value).toEqual(initialData)
     await execute().catch(() => {})
     expect(data.value).toEqual({ completed: false, id: 1, title: 'delectus aut autem', userId: 1 })
-    await execute('/todos/312').catch(() => {})
+    await execute('/todos/1/wrong-url').catch(() => {})
     expect(data.value).toEqual(initialData)
   })
 
@@ -380,11 +385,14 @@ describe.skipIf(isBelowNode18)('useAxios', () => {
       body: 'body',
       userId: 2,
     }
-    const { data, execute } = useAxios<ResType>(url, config, { ...options, initialData })
+    const { data, execute } = useAxios<ResType>(url, config, instance, {
+      ...options,
+      initialData,
+    })
     expect(data.value).toEqual(initialData)
     await execute().catch(() => {})
     expect(data.value).toEqual({ completed: false, id: 1, title: 'delectus aut autem', userId: 1 })
-    await execute('/todos/312').catch(() => {})
+    await execute('/todos/1/wrong-url').catch(() => {})
     expect(data.value).toEqual({ completed: false, id: 1, title: 'delectus aut autem', userId: 1 })
   })
 
@@ -397,5 +405,20 @@ describe.skipIf(isBelowNode18)('useAxios', () => {
     expect(onFinish).toHaveBeenCalled()
     expect(isFinished.value).toBeTruthy()
     expect(isLoading.value).toBeFalsy()
+  })
+
+  it('expect data type to not be undefined with initialData', async () => {
+    const o: UseAxiosOptions<number> = { ...options, initialData: 1 }
+    expectTypeOf(o.initialData).toBeNumber()
+    expectTypeOf(o).toEqualTypeOf<UseAxiosOptionsWithInitialData<number>>()
+    expectTypeOf(o).not.toEqualTypeOf<UseAxiosOptionsBase<number>>()
+    const d = useAxios<number>(url, config, o)
+    expectTypeOf(d.data.value).toBeNumber()
+  })
+
+  it('expect data type to maybe be undefined without initialData', async () => {
+    const d = useAxios<number>(url, config, { ...options })
+
+    expectTypeOf(d.data.value).toEqualTypeOf<number | undefined>()
   })
 })

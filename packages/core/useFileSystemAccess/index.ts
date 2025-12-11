@@ -1,8 +1,7 @@
-import type { Ref } from 'vue-demi'
-import { computed, ref, watch } from 'vue-demi'
-import type { Awaitable, MaybeRefOrGetter } from '@vueuse/shared'
-import { toValue } from '@vueuse/shared'
+import type { Awaitable } from '@vueuse/shared'
+import type { ComputedRef, MaybeRefOrGetter, ShallowRef } from 'vue'
 import type { ConfigurableWindow } from '../_configurable'
+import { computed, shallowRef, toValue, watch } from 'vue'
 import { defaultWindow } from '../_configurable'
 import { useSupported } from '../useSupported'
 
@@ -65,9 +64,9 @@ interface FileSystemWritableFileStream extends WritableStream {
  */
 interface FileSystemWritableFileStreamWrite {
   (data: string | BufferSource | Blob): Promise<void>
-  (options: { type: 'write'; position: number; data: string | BufferSource | Blob }): Promise<void>
-  (options: { type: 'seek'; position: number }): Promise<void>
-  (options: { type: 'truncate'; size: number }): Promise<void>
+  (options: { type: 'write', position: number, data: string | BufferSource | Blob }): Promise<void>
+  (options: { type: 'seek', position: number }): Promise<void>
+  (options: { type: 'truncate', size: number }): Promise<void>
 }
 
 /**
@@ -107,10 +106,10 @@ export function useFileSystemAccess(options: UseFileSystemAccessOptions = {}): U
   const window = _window as FileSystemAccessWindow
   const isSupported = useSupported(() => window && 'showSaveFilePicker' in window && 'showOpenFilePicker' in window)
 
-  const fileHandle = ref<FileSystemFileHandle>()
-  const data = ref<string | ArrayBuffer | Blob>()
+  const fileHandle = shallowRef<FileSystemFileHandle>()
+  const data = shallowRef<string | ArrayBuffer | Blob>()
 
-  const file = ref<File>()
+  const file = shallowRef<File>()
   const fileName = computed(() => file.value?.name ?? '')
   const fileMIME = computed(() => file.value?.type ?? '')
   const fileSize = computed(() => file.value?.size ?? 0)
@@ -121,7 +120,6 @@ export function useFileSystemAccess(options: UseFileSystemAccessOptions = {}): U
       return
     const [handle] = await window.showOpenFilePicker({ ...toValue(options), ..._options })
     fileHandle.value = handle
-    await updateFile()
     await updateData()
   }
 
@@ -130,7 +128,6 @@ export function useFileSystemAccess(options: UseFileSystemAccessOptions = {}): U
       return
     fileHandle.value = await (window as FileSystemAccessWindow).showSaveFilePicker({ ...options, ..._options })
     data.value = undefined
-    await updateFile()
     await updateData()
   }
 
@@ -170,6 +167,7 @@ export function useFileSystemAccess(options: UseFileSystemAccessOptions = {}): U
   }
 
   async function updateData() {
+    await updateFile()
     const type = toValue(dataType)
     if (type === 'Text')
       data.value = await file.value?.text()
@@ -198,13 +196,13 @@ export function useFileSystemAccess(options: UseFileSystemAccessOptions = {}): U
 }
 
 export interface UseFileSystemAccessReturn<T = string> {
-  isSupported: Ref<boolean>
-  data: Ref<T | undefined>
-  file: Ref<File | undefined>
-  fileName: Ref<string>
-  fileMIME: Ref<string>
-  fileSize: Ref<number>
-  fileLastModified: Ref<number>
+  isSupported: ComputedRef<boolean>
+  data: ShallowRef<T | undefined>
+  file: ShallowRef<File | undefined>
+  fileName: ComputedRef<string>
+  fileMIME: ComputedRef<string>
+  fileSize: ComputedRef<number>
+  fileLastModified: ComputedRef<number>
   open: (_options?: UseFileSystemAccessCommonOptions) => Awaitable<void>
   create: (_options?: UseFileSystemAccessShowSaveFileOptions) => Awaitable<void>
   save: (_options?: UseFileSystemAccessShowSaveFileOptions) => Awaitable<void>

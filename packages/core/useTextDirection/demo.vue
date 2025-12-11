@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { useTextDirection } from '@vueuse/core'
 
-import { useTextDirection } from '.'
+import { computed } from 'vue'
 
 const dir = useTextDirection({
   selector: '#_useTextDirectionDemo',
@@ -30,8 +30,7 @@ function handleOnClick() {
 </template>
 
 <style scoped>
-#_useTextDirectionDemo[dir='rtl']
-p {
+#_useTextDirectionDemo[dir='rtl'] p {
   color: red;
 }
 button {

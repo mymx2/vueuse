@@ -1,25 +1,29 @@
-import type { ComputedGetter, ComputedRef, WatchSource, WritableComputedOptions, WritableComputedRef } from 'vue-demi'
-import { customRef, ref, watch } from 'vue-demi'
+import type { ComputedGetter, ComputedRef, MultiWatchSources, WatchOptions, WatchSource, WritableComputedOptions, WritableComputedRef } from 'vue'
 import type { Fn } from '../utils'
+import { customRef, watch } from 'vue'
 
 export interface ComputedWithControlRefExtra {
   /**
    * Force update the computed value.
    */
-  trigger(): void
+  trigger: () => void
 }
 
 export interface ComputedRefWithControl<T> extends ComputedRef<T>, ComputedWithControlRefExtra {}
 export interface WritableComputedRefWithControl<T> extends WritableComputedRef<T>, ComputedWithControlRefExtra {}
 
-export function computedWithControl<T, S>(
-  source: WatchSource<S> | WatchSource<S>[],
-  fn: ComputedGetter<T>
+export type ComputedWithControlRef<T = any> = ComputedRefWithControl<T> | WritableComputedRefWithControl<T>
+
+export function computedWithControl<T>(
+  source: WatchSource | MultiWatchSources,
+  fn: ComputedGetter<T>,
+  options?: WatchOptions
 ): ComputedRefWithControl<T>
 
-export function computedWithControl<T, S>(
-  source: WatchSource<S> | WatchSource<S>[],
-  fn: WritableComputedOptions<T>
+export function computedWithControl<T>(
+  source: WatchSource | MultiWatchSources,
+  fn: WritableComputedOptions<T>,
+  options?: WatchOptions
 ): WritableComputedRefWithControl<T>
 
 /**
@@ -28,21 +32,22 @@ export function computedWithControl<T, S>(
  * @param source
  * @param fn
  */
-export function computedWithControl<T, S>(
-  source: WatchSource<S> | WatchSource<S>[],
+export function computedWithControl<T>(
+  source: WatchSource | MultiWatchSources,
   fn: ComputedGetter<T> | WritableComputedOptions<T>,
-) {
+  options: WatchOptions = {},
+): ComputedWithControlRef<T> {
   let v: T = undefined!
   let track: Fn
   let trigger: Fn
-  const dirty = ref(true)
+  let dirty = true
 
   const update = () => {
-    dirty.value = true
+    dirty = true
     trigger()
   }
 
-  watch(source, update, { flush: 'sync' })
+  watch(source, update, { flush: 'sync', ...options })
 
   const get = typeof fn === 'function' ? fn : fn.get
   const set = typeof fn === 'function' ? undefined : fn.set
@@ -53,9 +58,9 @@ export function computedWithControl<T, S>(
 
     return {
       get() {
-        if (dirty.value) {
-          v = get()
-          dirty.value = false
+        if (dirty) {
+          v = get(v)
+          dirty = false
         }
         track()
         return v
@@ -66,11 +71,9 @@ export function computedWithControl<T, S>(
     }
   }) as ComputedRefWithControl<T>
 
-  if (Object.isExtensible(result))
-    result.trigger = update
-
+  result.trigger = update
   return result
 }
 
-// alias
-export { computedWithControl as controlledComputed }
+/** @deprecated use `computedWithControl` instead */
+export const controlledComputed = computedWithControl

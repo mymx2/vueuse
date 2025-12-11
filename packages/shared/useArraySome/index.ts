@@ -1,7 +1,7 @@
-import type { ComputedRef } from 'vue-demi'
-import { computed } from 'vue-demi'
-import type { MaybeRefOrGetter } from '../utils'
-import { toValue } from '../toValue'
+import type { ComputedRef, MaybeRefOrGetter } from 'vue'
+import { computed, toValue } from 'vue'
+
+export type UseArraySomeReturn = ComputedRef<boolean>
 
 /**
  * Reactive `Array.some`
@@ -11,10 +11,12 @@ import { toValue } from '../toValue'
  * @param fn - a function to test each element.
  *
  * @returns **true** if the `fn` function returns a **truthy** value for any element from the array. Otherwise, **false**.
+ *
+ * @__NO_SIDE_EFFECTS__
  */
 export function useArraySome<T>(
   list: MaybeRefOrGetter<MaybeRefOrGetter<T>[]>,
   fn: (element: T, index: number, array: MaybeRefOrGetter<T>[]) => unknown,
-): ComputedRef<boolean> {
+): UseArraySomeReturn {
   return computed(() => toValue(list).some((element, index, array) => fn(toValue(element), index, array)))
 }

@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import type { Ref } from 'vue'
-import { computed, ref } from 'vue'
 import { useVirtualList } from '@vueuse/core'
+import { computed, shallowRef } from 'vue'
 
-const index: Ref = ref()
-const search = ref('')
+const index = shallowRef<number>()
+const search = shallowRef('')
 
-const allItems = Array.from(Array(99999).keys())
+const allItems = Array.from(Array.from({ length: 99999 }).keys())
   .map(i => ({
     height: i % 2 === 0 ? 42 : 84,
     size: i % 2 === 0 ? 'small' : 'large',
@@ -24,7 +23,8 @@ const { list, containerProps, wrapperProps, scrollTo } = useVirtualList(
   },
 )
 function handleScrollTo() {
-  scrollTo(index.value)
+  if (index.value)
+    scrollTo(index.value)
 }
 </script>
 
@@ -42,7 +42,7 @@ function handleScrollTo() {
     <div>
       <div class="inline-block mr-4">
         Filter list by size
-        <input v-model="search" placeholder="e.g. small, medium, large" type="search">
+        <input v-model="search" placeholder="e.g. small, large" type="search">
       </div>
     </div>
     <div v-bind="containerProps" class="h-300px overflow-auto p-2 bg-gray-500/5 rounded">

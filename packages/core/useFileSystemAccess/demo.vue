@@ -1,10 +1,22 @@
 <script setup lang="ts">
-import { stringify } from '@vueuse/docs-utils'
-import type { Ref } from 'vue'
-import { reactive, ref } from 'vue'
-import { useFileSystemAccess } from '@vueuse/core'
+import type { ShallowRef } from 'vue'
+import { reactify, useFileSystemAccess } from '@vueuse/core'
+import { reactive, shallowRef } from 'vue'
+import YAML from 'yaml'
 
-const dataType = ref('Text') as Ref<'Text' | 'ArrayBuffer' | 'Blob'>
+const stringify = reactify(
+  (input: any) => YAML.stringify(input, (k, v) => {
+    if (typeof v === 'function') {
+      return undefined
+    }
+    return v
+  }, {
+    singleQuote: true,
+    flowCollectionPadding: false,
+  }),
+)
+
+const dataType = shallowRef('Text') as ShallowRef<'Text' | 'ArrayBuffer' | 'Blob'>
 const res = useFileSystemAccess({
   dataType,
   types: [{
@@ -36,6 +48,9 @@ async function onSave() {
     <div flex="~ gap-1" items-center>
       <button @click="res.open()">
         Open
+      </button>
+      <button @click="res.updateData()">
+        Update
       </button>
       <button @click="res.create()">
         New file

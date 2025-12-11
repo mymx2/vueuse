@@ -8,22 +8,30 @@ Reactive current Date instance.
 
 ## Usage
 
-```js
+```ts
 import { useNow } from '@vueuse/core'
 
 const now = useNow()
 ```
 
-```js
+```ts
+import { useNow } from '@vueuse/core'
+// ---cut---
 const { now, pause, resume } = useNow({ controls: true })
 ```
 
 ## Component Usage
 
-```html
-<UseNow v-slot="{ now, pause, resume }">
-  Now: {{ now }}
-  <button @click="pause()">Pause</button>
-  <button @click="resume()">Resume</button>
-</UseNow>
+```vue
+<template>
+  <UseNow v-slot="{ now, pause, resume }">
+    Now: {{ now }}
+    <button @click="pause()">
+      Pause
+    </button>
+    <button @click="resume()">
+      Resume
+    </button>
+  </UseNow>
+</template>
 ```

@@ -1,7 +1,6 @@
 import type { WebFrame } from 'electron'
-import type { Ref } from 'vue-demi'
-import { isRef, ref, watch } from 'vue-demi'
-import type { MaybeRef } from '@vueuse/shared'
+import type { MaybeRef, Ref } from 'vue'
+import { ref as deepRef, isRef, watch } from 'vue'
 
 export function useZoomLevel(level: MaybeRef<number>): Ref<number>
 export function useZoomLevel(webFrame: WebFrame, level: MaybeRef<number>): Ref<number>
@@ -20,21 +19,21 @@ export function useZoomLevel(...args: any[]): Ref<number> {
 
   if (
     args.length === 0
-        || (isRef(args[0]) && typeof args[0].value === 'number')
-        || typeof args[0] === 'number'
+    || (isRef(args[0]) && typeof args[0].value === 'number')
+    || typeof args[0] === 'number'
   ) {
     webFrame = window.require ? window.require('electron').webFrame : undefined
-    newLevel = args.length > 0 ? ref(args[0]) : null
+    newLevel = args.length > 0 ? deepRef(args[0]) : null
   }
   else {
     webFrame = args[0]
-    newLevel = args.length > 1 ? ref(args[1]) : null
+    newLevel = args.length > 1 ? deepRef(args[1]) : null
   }
 
   if (!webFrame)
     throw new Error('provide WebFrame module or enable nodeIntegration')
 
-  const level = ref(newLevel ?? webFrame.getZoomLevel())
+  const level = deepRef(newLevel ?? webFrame.getZoomLevel())
 
   watch(
     level,

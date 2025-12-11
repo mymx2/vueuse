@@ -10,7 +10,7 @@ Reactive [Web Share API](https://developer.mozilla.org/en-US/docs/Web/API/Naviga
 
 ## Usage
 
-```js
+```ts
 import { useShare } from '@vueuse/core'
 
 const { share, isSupported } = useShare()
@@ -24,15 +24,14 @@ function startShare() {
 }
 ```
 
-
 ### Passing a source ref
 
 You can pass a `ref` to it, changes from the source ref will be reflected to your sharing options.
 
-```js {7}
+```ts {6}
 import { ref } from 'vue'
 
-const shareOptions = ref < ShareOptions > ({ text: 'foo' })
+const shareOptions = ref<ShareOptions>({ text: 'foo' })
 const { share, isSupported } = useShare(shareOptions)
 
 shareOptions.value.text = 'bar'

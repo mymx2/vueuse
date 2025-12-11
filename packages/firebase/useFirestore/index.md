@@ -8,11 +8,11 @@ Reactive [Firestore](https://firebase.google.com/docs/firestore) binding. Making
 
 ## Usage
 
-```js {9,12,17,22}
-import { computed, ref } from 'vue'
+```ts {9,12,17,22}
+import { useFirestore } from '@vueuse/firebase/useFirestore'
 import { initializeApp } from 'firebase/app'
 import { collection, doc, getFirestore, limit, orderBy, query } from 'firebase/firestore'
-import { useFirestore } from '@vueuse/firebase/useFirestore'
+import { computed, shallowRef } from 'vue'
 
 const app = initializeApp({ projectId: 'MY PROJECT ID' })
 const db = getFirestore(app)
@@ -23,13 +23,13 @@ const todos = useFirestore(collection(db, 'todos'))
 const user = useFirestore(doc(db, 'users', 'my-user-id'))
 
 // you can also use ref value for reactive query
-const postsLimit = ref(10)
+const postsLimit = shallowRef(10)
 const postsQuery = computed(() => query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(postsLimit.value)))
 const posts = useFirestore(postsQuery)
 
 // you can use the boolean value to tell a query when it is ready to run
 // when it gets falsy value, return the initial value
-const userId = ref('')
+const userId = shallowRef('')
 const userQuery = computed(() => userId.value && doc(db, 'users', userId.value))
 const userData = useFirestore(userQuery, null)
 ```
@@ -41,13 +41,18 @@ You can reuse the db reference by passing `autoDispose: false`. You can also set
 Note : Getting a not disposed db reference again don't cost a Firestore read.
 
 ```ts
+import { useFirestore } from '@vueuse/firebase/useFirestore'
+import { collection } from 'firebase/firestore'
+// ---cut---
 const todos = useFirestore(collection(db, 'todos'), undefined, { autoDispose: false })
 ```
 
 or use `createGlobalState` from the core package
 
-```js
-// store.js
+```ts twoslash include store
+// @filename: store.ts
+// ---cut---
+// store.ts
 import { createGlobalState } from '@vueuse/core'
 import { useFirestore } from '@vueuse/firebase/useFirestore'
 
@@ -56,14 +61,13 @@ export const useTodos = createGlobalState(
 )
 ```
 
-```js
-// app.js
+```vue
+<!-- app.vue -->
+<script setup lang="ts">
+// @include: store
+// ---cut---
 import { useTodos } from './store'
 
-export default {
-  setup() {
-    const todos = useTodos()
-    return { todos }
-  },
-}
+const todos = useTodos()
+</script>
 ```

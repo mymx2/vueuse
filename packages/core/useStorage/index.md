@@ -5,15 +5,17 @@ related: useLocalStorage, useSessionStorage, useStorageAsync
 
 # useStorage
 
-Reactive [LocalStorage](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage)/[SessionStorage](https://developer.mozilla.org/en-US/docs/Web/API/Window/sessionStorage)
+Create a reactive ref that can be used to access & modify [LocalStorage](https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage) or [SessionStorage](https://developer.mozilla.org/en-US/docs/Web/API/Window/sessionStorage).
+
+Uses localStorage by default, other storage sources be specified via third argument.
 
 ## Usage
 
 ::: tip
-When using with Nuxt 3, this functions will **NOT** be auto imported in favor of Nitro's built-in [`useStorage()`](https://nitro.unjs.io/guide/storage). Use explicit import if you want to use the function from VueUse.
+When using with Nuxt 3, this function will **NOT** be auto imported in favor of Nitro's built-in [`useStorage()`](https://nitro.unjs.io/guide/storage). Use explicit import if you want to use the function from VueUse.
 :::
 
-```js
+```ts
 import { useStorage } from '@vueuse/core'
 
 // bind object
@@ -37,6 +39,8 @@ state.value = null
 By default, `useStorage` will use the value from storage if it is present and ignores the default value. Be aware that when you are adding more properties to the default value, the key might be `undefined` if client's storage does not have that key.
 
 ```ts
+import { useStorage } from '@vueuse/core'
+// ---cut---
 localStorage.setItem('my-store', '{"hello": "hello"}')
 
 const state = useStorage('my-store', { hello: 'hi', greeting: 'hello' }, localStorage)
@@ -47,6 +51,8 @@ console.log(state.value.greeting) // undefined, since the value is not presented
 To solve that, you can enable `mergeDefaults` option.
 
 ```ts
+import { useStorage } from '@vueuse/core'
+// ---cut---
 localStorage.setItem('my-store', '{"hello": "nihao"}')
 
 const state = useStorage(
@@ -63,6 +69,8 @@ console.log(state.value.greeting) // 'hello', from merged default value
 When setting it to true, it will perform a **shallow merge** for objects. You can pass a function to perform custom merge (e.g. deep merge), for example:
 
 ```ts
+import { useStorage } from '@vueuse/core'
+// ---cut---
 const state = useStorage(
   'my-store',
   { hello: 'hi', greeting: 'hello' },

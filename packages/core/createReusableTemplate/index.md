@@ -7,12 +7,11 @@ outline: deep
 
 Define and reuse template inside the component scope.
 
-
 ## Motivation
 
 It's common to have the need to reuse some part of the template. For example:
 
-```html
+```vue
 <template>
   <dialog v-if="showInDialog">
     <!-- something complex -->
@@ -31,8 +30,8 @@ So this function is made to provide a way for defining and reusing templates ins
 
 In the previous example, we could refactor it to:
 
-```html
-<script setup>
+```vue
+<script setup lang="ts">
 import { createReusableTemplate } from '@vueuse/core'
 
 const [DefineTemplate, ReuseTemplate] = createReusableTemplate()
@@ -62,10 +61,10 @@ const [DefineTemplate, ReuseTemplate] = createReusableTemplate()
 
 When using with [Options API](https://vuejs.org/guide/introduction.html#api-styles), you will need to define `createReusableTemplate` outside of the component setup and pass to the `components` option in order to use them in the template.
 
-```html
+```vue
 <script>
-import { defineComponent } from 'vue'
 import { createReusableTemplate } from '@vueuse/core'
+import { defineComponent } from 'vue'
 
 const [DefineTemplate, ReuseTemplate] = createReusableTemplate()
 
@@ -96,8 +95,8 @@ You can also pass data to the template using slots:
 - Use `v-slot="..."` to access the data on `<DefineTemplate>`
 - Directly bind the data on `<ReuseTemplate>` to pass them to the template
 
-```html
-<script setup>
+```vue
+<script setup lang="ts">
 import { createReusableTemplate } from '@vueuse/core'
 
 const [DefineTemplate, ReuseTemplate] = createReusableTemplate()
@@ -118,7 +117,7 @@ const [DefineTemplate, ReuseTemplate] = createReusableTemplate()
 
 `createReusableTemplate` accepts a generic type to provide type support for the data passed to the template:
 
-```html
+```vue
 <script setup lang="ts">
 import { createReusableTemplate } from '@vueuse/core'
 
@@ -144,14 +143,13 @@ const [DefineBar, ReuseBar] = createReusableTemplate<{ items: string[] }>()
 
 Optionally, if you are not a fan of array destructuring, the following usages are also legal:
 
-```html
+```vue
 <script setup lang="ts">
 import { createReusableTemplate } from '@vueuse/core'
 
-const {
-  define: DefineFoo,
-  reuse: ReuseFoo,
-} = createReusableTemplate<{ msg: string }>()
+const { define: DefineFoo, reuse: ReuseFoo } = createReusableTemplate<{
+  msg: string
+}>()
 </script>
 
 <template>
@@ -163,7 +161,7 @@ const {
 </template>
 ```
 
-```html
+```vue
 <script setup lang="ts">
 import { createReusableTemplate } from '@vueuse/core'
 
@@ -180,19 +178,40 @@ const TemplateFoo = createReusableTemplate<{ msg: string }>()
 ```
 
 ::: warning
-Dot notation is not supported in Vue 2.
-:::
-
-::: warning
 Passing boolean props without `v-bind` is not supported. See the [Caveats](#boolean-props) section for more details.
 :::
+
+### Props and Attributes
+
+By default, all props and attributes passed to `<ReuseTemplate>` will be passed to the template. If you don't want certain props to be passed to the DOM, you need to define the runtime props:
+
+```ts
+import { createReusableTemplate } from '@vueuse/core'
+
+const [DefineTemplate, ReuseTemplate] = createReusableTemplate({
+  props: {
+    msg: String,
+    enable: Boolean,
+  }
+})
+```
+
+If you don't want to pass any props to the template, you can pass the `inheritAttrs` option:
+
+```ts
+import { createReusableTemplate } from '@vueuse/core'
+
+const [DefineTemplate, ReuseTemplate] = createReusableTemplate({
+  inheritAttrs: false,
+})
+```
 
 ### Passing Slots
 
 It's also possible to pass slots back from `<ReuseTemplate>`. You can access the slots on `<DefineTemplate>` from `$slots`:
 
-```html
-<script setup>
+```vue
+<script setup lang="ts">
 import { createReusableTemplate } from '@vueuse/core'
 
 const [DefineTemplate, ReuseTemplate] = createReusableTemplate()
@@ -215,17 +234,13 @@ const [DefineTemplate, ReuseTemplate] = createReusableTemplate()
 </template>
 ```
 
-::: warning
-Passing slots does not work in Vue 2.
-:::
-
 ## Caveats
 
 ### Boolean props
 
 As opposed to Vue's behavior, props defined as `boolean` that were passed without `v-bind` or absent will be resolved into an empty string or `undefined` respectively:
 
-```html
+```vue
 <script setup lang="ts">
 import { createReusableTemplate } from '@vueuse/core'
 
@@ -264,4 +279,4 @@ Existing Vue discussions/issues about reusing template:
 Alternative Approaches:
 
 - [Vue Macros - `namedTemplate`](https://vue-macros.sxzz.moe/features/named-template.html)
-- [`unplugin-@vueuse/core`](https://github.com/liulinboyi/unplugin-@vueuse/core)
+- [`unplugin-vue-reuse-template`](https://github.com/liulinboyi/unplugin-vue-reuse-template)

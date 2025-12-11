@@ -9,9 +9,10 @@ Combine computed and inject
 ## Usage
 
 In Provider Component
-```ts
+
+```ts twoslash include main
 import type { InjectionKey, Ref } from 'vue'
-import { provide, ref } from 'vue'
+import { provide } from 'vue'
 
 interface Item {
   key: number
@@ -26,7 +27,11 @@ provide(ArrayKey, array)
 ```
 
 In Receiver Component
+
 ```ts
+// @filename: provider.ts
+// @include: main
+// ---cut---
 import { computedInject } from '@vueuse/core'
 
 import { ArrayKey } from './provider'

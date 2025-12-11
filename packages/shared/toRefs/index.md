@@ -4,7 +4,7 @@ category: Reactivity
 
 # toRefs
 
-Extended [`toRefs`](https://v3.vuejs.org/api/refs-api.html#torefs) that also accepts refs of an object.
+Extended [`toRefs`](https://vuejs.org/api/reactivity-utilities.html#torefs) that also accepts refs of an object.
 
 ## Usage
 
@@ -32,14 +32,7 @@ const [a, b] = toRefs(arr)
 
 ### Destructuring a props object
 
-```html
-<template>
-  <div>
-    <input v-model="a" type="text" />
-    <input v-model="b" type="text" />
-  </div>
-</template>
-
+```vue
 <script lang="ts">
 import { toRefs, useVModel } from '@vueuse/core'
 
@@ -54,4 +47,11 @@ export default {
   }
 }
 </script>
+
+<template>
+  <div>
+    <input v-model="a" type="text">
+    <input v-model="b" type="text">
+  </div>
+</template>
 ```

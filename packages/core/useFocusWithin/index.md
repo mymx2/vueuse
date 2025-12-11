@@ -8,7 +8,22 @@ Reactive utility to track if an element or one of its decendants has focus. It i
 
 ## Basic Usage
 
-```html
+```vue
+<script setup lang="ts">
+import { useFocusWithin } from '@vueuse/core'
+import { ref, watch } from 'vue'
+
+const target = ref()
+const { focused } = useFocusWithin(target)
+
+watch(focused, (focused) => {
+  if (focused)
+    console.log('Target contains the focused element')
+  else
+    console.log('Target does NOT contain the focused element')
+})
+</script>
+
 <template>
   <form ref="target">
     <input type="text" placeholder="First Name">
@@ -17,16 +32,4 @@ Reactive utility to track if an element or one of its decendants has focus. It i
     <input type="text" placeholder="Password">
   </form>
 </template>
-
-<script>
-import { useFocusWithin } from '@vueuse/core'
-
-const target = ref();
-const { focused } = useFocusWithin(target)
-
-watch(focused, focused => {
-  if (focused) console.log('Target contains the focused element')
-  else console.log('Target does NOT contain the focused element')
-})
-</script>
 ```

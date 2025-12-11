@@ -8,12 +8,12 @@ Reactive swipe detection based on [PointerEvents](https://developer.mozilla.org/
 
 ## Usage
 
-```html
-<script setup>
-import { ref } from 'vue'
+```vue
+<script setup lang="ts">
 import { usePointerSwipe } from '@vueuse/core'
+import { useTemplateRef } from 'vue'
 
-const el = ref(null)
+const el = useTemplateRef('el')
 const { isSwiping, direction } = usePointerSwipe(el)
 </script>
 

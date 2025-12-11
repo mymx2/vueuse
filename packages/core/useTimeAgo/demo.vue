@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { timestamp } from '@vueuse/shared'
-import { computed, ref } from 'vue'
-import { useTimeAgo } from '@vueuse/core'
+import { timestamp, useTimeAgo } from '@vueuse/core'
+import { computed, shallowRef } from 'vue'
 
-const slider = ref(0)
+const slider = shallowRef(0)
 const value = computed(() => timestamp() + slider.value ** 3)
 const timeAgo = useTimeAgo(value)
 </script>
@@ -28,7 +27,7 @@ const timeAgo = useTimeAgo(value)
   opacity: 0.8;
   margin: 0.5rem 0;
   outline: none !important;
-  transition: opacity .2s;
+  transition: opacity 0.2s;
 }
 
 .slider:hover {

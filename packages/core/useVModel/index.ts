@@ -1,7 +1,7 @@
-import { isDef } from '@vueuse/shared'
-import type { Ref, UnwrapRef, WritableComputedRef } from 'vue-demi'
-import { computed, getCurrentInstance, isVue2, nextTick, ref, watch } from 'vue-demi'
+import type { Ref, UnwrapRef, WritableComputedRef } from 'vue'
 import type { CloneFn } from '../useCloned'
+import { isDef } from '@vueuse/shared'
+import { computed, ref as deepRef, getCurrentInstance, nextTick, watch } from 'vue'
 import { cloneFnJSON } from '../useCloned'
 
 export interface UseVModelOptions<T, Passive extends boolean = false> {
@@ -48,13 +48,23 @@ export interface UseVModelOptions<T, Passive extends boolean = false> {
   shouldEmit?: (v: T) => boolean
 }
 
+/**
+ * Shorthand for v-model binding, props + emit -> ref
+ *
+ * @see https://vueuse.org/useVModel
+ * @param props
+ * @param key (default 'modelValue')
+ * @param emit
+ * @param options
+ *
+ * @__NO_SIDE_EFFECTS__
+ */
 export function useVModel<P extends object, K extends keyof P, Name extends string>(
   props: P,
   key?: K,
   emit?: (name: Name, ...args: any[]) => void,
   options?: UseVModelOptions<P[K], false>,
 ): WritableComputedRef<P[K]>
-
 export function useVModel<P extends object, K extends keyof P, Name extends string>(
   props: P,
   key?: K,
@@ -67,8 +77,11 @@ export function useVModel<P extends object, K extends keyof P, Name extends stri
  *
  * @see https://vueuse.org/useVModel
  * @param props
- * @param key (default 'value' in Vue 2 and 'modelValue' in Vue 3)
+ * @param key (default 'modelValue')
  * @param emit
+ * @param options
+ *
+ * @__NO_SIDE_EFFECTS__
  */
 export function useVModel<P extends object, K extends keyof P, Name extends string, Passive extends boolean>(
   props: P,
@@ -91,15 +104,7 @@ export function useVModel<P extends object, K extends keyof P, Name extends stri
   let event: string | undefined = eventName
 
   if (!key) {
-    if (isVue2) {
-      const modelOptions = vm?.proxy?.$options?.model
-      key = modelOptions?.value || 'value' as K
-      if (!eventName)
-        event = modelOptions?.event || 'input'
-    }
-    else {
-      key = 'modelValue' as K
-    }
+    key = 'modelValue' as K
   }
 
   event = event || `update:${key!.toString()}`
@@ -126,7 +131,7 @@ export function useVModel<P extends object, K extends keyof P, Name extends stri
 
   if (passive) {
     const initialValue = getValue()
-    const proxy = ref<P[K]>(initialValue!)
+    const proxy = deepRef<P[K]>(initialValue!)
     let isUpdating = false
 
     watch(

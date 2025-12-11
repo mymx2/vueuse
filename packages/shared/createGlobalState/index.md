@@ -11,14 +11,14 @@ Keep states in the global scope to be reusable across Vue instances.
 
 ### Without Persistence (Store in Memory)
 
-```js
-// store.js
-import { ref } from 'vue'
+```ts
+// store.ts
 import { createGlobalState } from '@vueuse/core'
+import { shallowRef } from 'vue'
 
 export const useGlobalState = createGlobalState(
   () => {
-    const count = ref(0)
+    const count = shallowRef(0)
     return { count }
   }
 )
@@ -26,15 +26,15 @@ export const useGlobalState = createGlobalState(
 
 A bigger example:
 
-```js
-// store.js
-import { computed, ref } from 'vue'
+```ts
+// store.ts
 import { createGlobalState } from '@vueuse/core'
+import { computed, shallowRef } from 'vue'
 
 export const useGlobalState = createGlobalState(
   () => {
     // state
-    const count = ref(0)
+    const count = shallowRef(0)
 
     // getters
     const doubleCount = computed(() => count.value * 2)
@@ -49,13 +49,12 @@ export const useGlobalState = createGlobalState(
 )
 ```
 
-
 ### With Persistence
 
-Store in `localStorage` with `useStorage()`:
+Store in `localStorage` with `useStorage`:
 
-```js
-// store.js
+```ts twoslash include store
+// store.ts
 import { createGlobalState, useStorage } from '@vueuse/core'
 
 export const useGlobalState = createGlobalState(
@@ -63,8 +62,11 @@ export const useGlobalState = createGlobalState(
 )
 ```
 
-```js
-// component.js
+```ts
+// @filename: store.ts
+// @include: store
+// ---cut---
+// component.ts
 import { useGlobalState } from './store'
 
 export default defineComponent({

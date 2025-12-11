@@ -1,11 +1,15 @@
-import type { ConfigurableFlush, MaybeRefOrGetter, RemovableRef } from '@vueuse/shared'
-import { toValue } from '@vueuse/shared'
+import type { ConfigurableFlush, RemovableRef } from '@vueuse/shared'
+import type { MaybeRefOrGetter, Ref, ShallowRef } from 'vue'
 import { watchPausable } from '@vueuse/core'
-import type { Ref } from 'vue-demi'
-import { ref, shallowRef } from 'vue-demi'
 import { del, get, set, update } from 'idb-keyval'
+import { ref as deepRef, shallowRef, toRaw, toValue } from 'vue'
 
-export interface UseIDBOptions extends ConfigurableFlush {
+interface Serializer<T> {
+  read: (raw: unknown) => T
+  write: (value: T) => unknown
+}
+
+export interface UseIDBOptions<T> extends ConfigurableFlush {
   /**
    * Watch for deep changes
    *
@@ -32,12 +36,17 @@ export interface UseIDBOptions extends ConfigurableFlush {
    * @default true
    */
   writeDefaults?: boolean
+
+  /**
+   * Custom data serialization
+   */
+  serializer?: Serializer<T>
 }
 
 export interface UseIDBKeyvalReturn<T> {
   data: RemovableRef<T>
-  isFinished: Ref<boolean>
-  set(value: T): Promise<void>
+  isFinished: ShallowRef<boolean>
+  set: (value: T) => Promise<void>
 }
 
 /**
@@ -49,7 +58,7 @@ export interface UseIDBKeyvalReturn<T> {
 export function useIDBKeyval<T>(
   key: IDBValidKey,
   initialValue: MaybeRefOrGetter<T>,
-  options: UseIDBOptions = {},
+  options: UseIDBOptions<T> = {},
 ): UseIDBKeyvalReturn<T> {
   const {
     flush = 'pre',
@@ -59,10 +68,14 @@ export function useIDBKeyval<T>(
       console.error(e)
     },
     writeDefaults = true,
+    serializer = {
+      read: (raw: unknown) => raw as T,
+      write: (value: T) => value,
+    },
   } = options
 
-  const isFinished = ref(false)
-  const data = (shallow ? shallowRef : ref)(initialValue) as Ref<T>
+  const isFinished = shallowRef(false)
+  const data = (shallow ? shallowRef : deepRef)(initialValue) as Ref<T>
 
   const rawInit: T = toValue(initialValue)
 
@@ -70,11 +83,13 @@ export function useIDBKeyval<T>(
     try {
       const rawValue = await get<T>(key)
       if (rawValue === undefined) {
-        if (rawInit !== undefined && rawInit !== null && writeDefaults)
-          await set(key, rawInit)
+        if (rawInit !== undefined && rawInit !== null && writeDefaults) {
+          const initValue = serializer.write(rawInit)
+          await set(key, initValue)
+        }
       }
       else {
-        data.value = rawValue
+        data.value = serializer.read(rawValue)
       }
     }
     catch (e) {
@@ -91,13 +106,9 @@ export function useIDBKeyval<T>(
         await del(key)
       }
       else {
-        // IndexedDB does not support saving proxies, convert from proxy before saving
-        if (Array.isArray(data.value))
-          await update(key, () => (JSON.parse(JSON.stringify(data.value))))
-        else if (typeof data.value === 'object')
-          await update(key, () => ({ ...data.value }))
-        else
-          await update(key, () => (data.value))
+        const rawValue = toRaw(data.value)
+        const serializedValue = serializer.write(rawValue)
+        await update(key, () => serializedValue)
       }
     }
     catch (e) {

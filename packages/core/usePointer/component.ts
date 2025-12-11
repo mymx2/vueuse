@@ -1,17 +1,23 @@
-import { defineComponent, reactive, ref } from 'vue-demi'
-import type { UsePointerOptions } from '@vueuse/core'
-import { usePointer } from '@vueuse/core'
-import { defaultWindow } from '../_configurable'
+import type { UsePointerOptions, UsePointerReturn } from '@vueuse/core'
+import type { Reactive, SlotsType } from 'vue'
+import { defaultWindow, usePointer } from '@vueuse/core'
+import { defineComponent, reactive, shallowRef } from 'vue'
 
-export const UsePointer = /* #__PURE__ */ defineComponent<Omit<UsePointerOptions, 'target'> & { target: 'window' | 'self' }>({
-  name: 'UsePointer',
-  props: [
-    'pointerTypes',
-    'initialValue',
-    'target',
-  ] as unknown as undefined,
-  setup(props, { slots }) {
-    const el = ref<HTMLElement | null>(null)
+export interface UsePointerProps extends Omit<UsePointerOptions, 'target'> {
+  target?: 'window' | 'self'
+}
+interface UsePointerSlots {
+  default: (data: Reactive<UsePointerReturn>) => any
+}
+
+export const UsePointer = /* #__PURE__ */ defineComponent<
+  UsePointerProps,
+  Record<string, never>,
+  string,
+  SlotsType<UsePointerSlots>
+>(
+  (props, { slots }) => {
+    const el = shallowRef<HTMLElement | null>(null)
 
     const data = reactive(usePointer({
       ...props,
@@ -20,7 +26,16 @@ export const UsePointer = /* #__PURE__ */ defineComponent<Omit<UsePointerOptions
 
     return () => {
       if (slots.default)
-        return slots.default(data, { ref: el })
+        return slots.default(data)
     }
   },
-})
+  {
+    name: 'UsePointer',
+    props: [
+      'initialValue',
+      'pointerTypes',
+      'target',
+      'window',
+    ],
+  },
+)
